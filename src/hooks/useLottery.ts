@@ -1,5 +1,6 @@
-import { useContractWrite, useContractRead } from 'wagmi';
+import { useContractWrite, useContractRead, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
+import { encryptNumbers } from '@/lib/fhe';
 
 const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '';
 
@@ -14,6 +15,25 @@ const LOTTERY_ABI = [
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32[]",
+        "name": "numbers",
+        "type": "uint32[]"
+      }
+    ],
+    "name": "purchaseTicketSimple",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
     "anonymous": false,
@@ -169,17 +189,47 @@ const LOTTERY_ABI = [
 // Removed useLotteryContract as useContract is not available in wagmi v2
 
 export function usePurchaseTicket() {
-  const { write, isLoading, error } = useContractWrite({
+  const { 
+    write, 
+    data: hash, 
+    isLoading: isWriteLoading, 
+    error: writeError 
+  } = useContractWrite({
     address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
     abi: LOTTERY_ABI,
-    functionName: 'purchaseTicket',
+    functionName: 'purchaseTicketSimple',
     value: parseEther('0.1'), // 0.1 ETH ticket price
   });
 
+  const { 
+    isLoading: isConfirming, 
+    isSuccess: isConfirmed, 
+    error: confirmError 
+  } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const purchaseTicket = async (numbers: number[]) => {
+    try {
+      // Convert numbers to uint32 array
+      const uint32Numbers = numbers.map(n => Number(n));
+      
+      // Call the contract write function
+      write({
+        args: [uint32Numbers],
+      });
+    } catch (error) {
+      console.error('Failed to purchase ticket:', error);
+      throw error;
+    }
+  };
+
   return {
-    purchaseTicket: write,
-    isLoading,
-    error,
+    purchaseTicket,
+    isLoading: isWriteLoading || isConfirming,
+    isConfirmed,
+    error: writeError || confirmError,
+    hash,
   };
 }
 

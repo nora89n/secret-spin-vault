@@ -4,7 +4,7 @@ async function main() {
   console.log("Deploying Secret Spin Vault...");
 
   // Get the contract factory
-  const SecretSpinVault = await ethers.getContractFactory("SecretSpinVault");
+  const SecretSpinVault = await ethers.getContractFactory("SecretSpinVaultSimple");
 
   // Deploy the contract
   // For now, we'll use the deployer as the verifier

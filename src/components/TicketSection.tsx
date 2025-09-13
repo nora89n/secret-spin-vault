@@ -3,36 +3,50 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Lock, Eye, EyeOff, Plus } from "lucide-react";
 import { useAccount } from 'wagmi';
 import { useGetPlayerTickets, useGetTicketInfo, usePurchaseTicket, useGetTicketPrice } from '@/hooks/useLottery';
+import { NumberSelector } from './NumberSelector';
+import { PurchaseConfirmation } from './PurchaseConfirmation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export const TicketSection = () => {
   const { address } = useAccount();
   const { playerTickets, isLoading: ticketsLoading } = useGetPlayerTickets(address || '0x0');
   const { ticketPrice, isLoading: priceLoading } = useGetTicketPrice();
-  const { purchaseTicket, isLoading: purchaseLoading } = usePurchaseTicket();
+  const { purchaseTicket, isLoading: purchaseLoading, isConfirmed, error: purchaseError, hash } = usePurchaseTicket();
+  
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
 
-  const handleBuyTicket = async () => {
-    if (!address) return;
-    
-    try {
-      // For now, we'll use placeholder encrypted numbers
-      // In a real implementation, these would be generated client-side using FHE
-      const encryptedNumbers = [
-        '0x1234567890abcdef1234567890abcdef12345678',
-        '0xabcdef1234567890abcdef1234567890abcdef12',
-        '0x567890abcdef1234567890abcdef1234567890ab',
-        '0x90abcdef1234567890abcdef1234567890abcdef',
-        '0xcdef1234567890abcdef1234567890abcdef1234',
-        '0x34567890abcdef1234567890abcdef1234567890'
-      ];
-      
-      await purchaseTicket({
-        args: [encryptedNumbers, '0x'], // Placeholder proof
-      });
-    } catch (error) {
-      console.error('Failed to purchase ticket:', error);
+  const handleNumbersSelected = (numbers: number[]) => {
+    setSelectedNumbers(numbers);
+  };
+
+  const handlePurchaseClick = () => {
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
     }
+    setShowBuyModal(true);
+  };
+
+  const handlePurchaseConfirm = async () => {
+    try {
+      await purchaseTicket(selectedNumbers);
+      setShowConfirmation(false);
+      setShowBuyModal(false);
+      setSelectedNumbers([]);
+      toast.success('Ticket purchased successfully!');
+    } catch (error) {
+      console.error('Purchase failed:', error);
+      toast.error('Failed to purchase ticket. Please try again.');
+    }
+  };
+
+  const handleCloseModals = () => {
+    setShowBuyModal(false);
+    setShowConfirmation(false);
+    setSelectedNumbers([]);
   };
 
   const formatTicketPrice = (price: bigint | undefined) => {
@@ -74,7 +88,7 @@ export const TicketSection = () => {
               <Button 
                 variant="casino" 
                 className="w-full"
-                onClick={handleBuyTicket}
+                onClick={handlePurchaseClick}
                 disabled={!address || purchaseLoading}
               >
                 {purchaseLoading ? (
@@ -113,6 +127,50 @@ export const TicketSection = () => {
           </div>
         </div>
       </div>
+
+      {/* Number Selection Modal */}
+      {showBuyModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-luxury rounded-xl border border-casino-gold/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-casino-gold">Choose Your Lucky Numbers</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleCloseModals}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </Button>
+              </div>
+              
+              <NumberSelector
+                onNumbersSelected={handleNumbersSelected}
+                onPurchase={async (numbers) => {
+                  setSelectedNumbers(numbers);
+                  setShowBuyModal(false);
+                  setShowConfirmation(true);
+                }}
+                isLoading={purchaseLoading}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Confirmation Modal */}
+      <PurchaseConfirmation
+        isOpen={showConfirmation}
+        onClose={handleCloseModals}
+        onConfirm={handlePurchaseConfirm}
+        selectedNumbers={selectedNumbers}
+        ticketPrice={formatTicketPrice(ticketPrice)}
+        isLoading={purchaseLoading}
+        error={purchaseError?.message}
+        hash={hash}
+        isConfirmed={isConfirmed}
+      />
     </section>
   );
 };

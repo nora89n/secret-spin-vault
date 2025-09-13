@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
-import { euint32, externalEuint32, euint8, ebool, FHE } from "@fhevm/solidity/lib/FHE.sol";
-
-contract SecretSpinVault is SepoliaConfig {
-    using FHE for *;
-    
+contract SecretSpinVaultSimple {
     struct LotteryTicket {
-        euint32 ticketId;
-        euint32[] encryptedNumbers; // Array of encrypted lottery numbers
-        euint32 purchasePrice;
+        uint256 ticketId;
+        uint32[] numbers; // Array of lottery numbers
+        uint256 purchasePrice;
         address owner;
         uint256 purchaseTime;
         bool isActive;
@@ -18,10 +13,10 @@ contract SecretSpinVault is SepoliaConfig {
     }
     
     struct LotteryDraw {
-        euint32 drawId;
-        euint32[] winningNumbers; // Encrypted winning numbers
-        euint32 totalPrizePool;
-        euint32 totalTickets;
+        uint256 drawId;
+        uint32[] winningNumbers; // Winning numbers
+        uint256 totalPrizePool;
+        uint256 totalTickets;
         uint256 drawTime;
         uint256 endTime;
         bool isCompleted;
@@ -30,15 +25,15 @@ contract SecretSpinVault is SepoliaConfig {
     }
     
     struct PrizeDistribution {
-        euint32 firstPrize;    // 6 matching numbers
-        euint32 secondPrize;   // 5 matching numbers
-        euint32 thirdPrize;    // 4 matching numbers
-        euint32 fourthPrize;   // 3 matching numbers
+        uint32 firstPrize;    // 6 matching numbers
+        uint32 secondPrize;   // 5 matching numbers
+        uint32 thirdPrize;    // 4 matching numbers
+        uint32 fourthPrize;   // 3 matching numbers
     }
     
     mapping(uint256 => LotteryTicket) public tickets;
     mapping(uint256 => LotteryDraw) public draws;
-    mapping(address => euint32) public playerReputation;
+    mapping(address => uint32) public playerReputation;
     mapping(address => uint256[]) public playerTickets;
     
     uint256 public ticketCounter;
@@ -54,7 +49,7 @@ contract SecretSpinVault is SepoliaConfig {
     event TicketPurchased(uint256 indexed ticketId, address indexed player, uint32[] numbers);
     event DrawCreated(uint256 indexed drawId, uint256 drawTime);
     event DrawCompleted(uint256 indexed drawId, uint32[] winningNumbers);
-    event PrizeClaimed(uint256 indexed ticketId, address indexed winner, uint32 prizeAmount);
+    event PrizeClaimed(uint256 indexed ticketId, address indexed winner, uint256 prizeAmount);
     event ReputationUpdated(address indexed player, uint32 reputation);
     
     constructor(address _verifier) {
@@ -63,32 +58,41 @@ contract SecretSpinVault is SepoliaConfig {
         
         // Set default prize distribution (percentages)
         prizeDistribution = PrizeDistribution({
-            firstPrize: FHE.asEuint32(50),   // 50% of prize pool
-            secondPrize: FHE.asEuint32(25),  // 25% of prize pool
-            thirdPrize: FHE.asEuint32(15),   // 15% of prize pool
-            fourthPrize: FHE.asEuint32(10)   // 10% of prize pool
+            firstPrize: 50,   // 50% of prize pool
+            secondPrize: 25,  // 25% of prize pool
+            thirdPrize: 15,   // 15% of prize pool
+            fourthPrize: 10   // 10% of prize pool
         });
     }
     
-    function purchaseTicket(
-        externalEuint32[] calldata encryptedNumbers,
-        bytes calldata inputProof
-    ) public payable returns (uint256) {
+    function purchaseTicketSimple(uint32[] calldata numbers) public payable returns (uint256) {
         require(msg.value == TICKET_PRICE, "Incorrect ticket price");
-        require(encryptedNumbers.length == MAX_NUMBERS, "Must provide exactly 6 numbers");
+        require(numbers.length == MAX_NUMBERS, "Must provide exactly 6 numbers");
+        
+        // Validate numbers are in range
+        for (uint256 i = 0; i < MAX_NUMBERS; i++) {
+            require(numbers[i] >= 1 && numbers[i] <= NUMBER_RANGE, "Number out of range");
+        }
+        
+        // Check for duplicates
+        for (uint256 i = 0; i < MAX_NUMBERS; i++) {
+            for (uint256 j = i + 1; j < MAX_NUMBERS; j++) {
+                require(numbers[i] != numbers[j], "Duplicate numbers not allowed");
+            }
+        }
         
         uint256 ticketId = ticketCounter++;
         
-        // Convert external encrypted numbers to internal format
-        euint32[] memory internalNumbers = new euint32[](MAX_NUMBERS);
+        // Create a copy of the numbers array
+        uint32[] memory ticketNumbers = new uint32[](MAX_NUMBERS);
         for (uint256 i = 0; i < MAX_NUMBERS; i++) {
-            internalNumbers[i] = FHE.fromExternal(encryptedNumbers[i], inputProof);
+            ticketNumbers[i] = numbers[i];
         }
         
         tickets[ticketId] = LotteryTicket({
-            ticketId: FHE.asEuint32(0), // Will be set properly later
-            encryptedNumbers: internalNumbers,
-            purchasePrice: FHE.asEuint32(0), // Will be set to actual value via FHE operations
+            ticketId: ticketId,
+            numbers: ticketNumbers,
+            purchasePrice: TICKET_PRICE,
             owner: msg.sender,
             purchaseTime: block.timestamp,
             isActive: true,
@@ -97,7 +101,7 @@ contract SecretSpinVault is SepoliaConfig {
         
         playerTickets[msg.sender].push(ticketId);
         
-        emit TicketPurchased(ticketId, msg.sender, new uint32[](0)); // Numbers will be decrypted off-chain
+        emit TicketPurchased(ticketId, msg.sender, numbers);
         return ticketId;
     }
     
@@ -112,10 +116,10 @@ contract SecretSpinVault is SepoliaConfig {
         uint256 drawId = drawCounter++;
         
         draws[drawId] = LotteryDraw({
-            drawId: FHE.asEuint32(0), // Will be set properly later
-            winningNumbers: new euint32[](MAX_NUMBERS),
-            totalPrizePool: FHE.asEuint32(0),
-            totalTickets: FHE.asEuint32(0),
+            drawId: drawId,
+            winningNumbers: new uint32[](MAX_NUMBERS),
+            totalPrizePool: 0,
+            totalTickets: 0,
             drawTime: _drawTime,
             endTime: _endTime,
             isCompleted: false,
@@ -129,25 +133,30 @@ contract SecretSpinVault is SepoliaConfig {
     
     function conductDraw(
         uint256 drawId,
-        externalEuint32[] calldata encryptedWinningNumbers,
-        bytes calldata inputProof
+        uint32[] calldata winningNumbers
     ) public {
         require(msg.sender == verifier, "Only verifier can conduct draws");
         require(draws[drawId].drawTime <= block.timestamp, "Draw time has not arrived");
         require(!draws[drawId].isCompleted, "Draw already completed");
-        require(encryptedWinningNumbers.length == MAX_NUMBERS, "Must provide exactly 6 winning numbers");
+        require(winningNumbers.length == MAX_NUMBERS, "Must provide exactly 6 winning numbers");
         
-        // Convert external encrypted winning numbers to internal format
-        euint32[] memory internalWinningNumbers = new euint32[](MAX_NUMBERS);
+        // Validate winning numbers
         for (uint256 i = 0; i < MAX_NUMBERS; i++) {
-            internalWinningNumbers[i] = FHE.fromExternal(encryptedWinningNumbers[i], inputProof);
+            require(winningNumbers[i] >= 1 && winningNumbers[i] <= NUMBER_RANGE, "Winning number out of range");
         }
         
-        draws[drawId].winningNumbers = internalWinningNumbers;
+        // Check for duplicates in winning numbers
+        for (uint256 i = 0; i < MAX_NUMBERS; i++) {
+            for (uint256 j = i + 1; j < MAX_NUMBERS; j++) {
+                require(winningNumbers[i] != winningNumbers[j], "Duplicate winning numbers not allowed");
+            }
+        }
+        
+        draws[drawId].winningNumbers = winningNumbers;
         draws[drawId].isCompleted = true;
         draws[drawId].verifier = msg.sender;
         
-        emit DrawCompleted(drawId, new uint32[](0)); // Winning numbers will be decrypted off-chain
+        emit DrawCompleted(drawId, winningNumbers);
     }
     
     function verifyDraw(uint256 drawId, bool isVerified) public {
@@ -164,36 +173,67 @@ contract SecretSpinVault is SepoliaConfig {
         require(tickets[ticketId].owner == msg.sender, "Only ticket owner can check");
         require(draws[drawId].isCompleted, "Draw not completed yet");
         
-        // This would require FHE comparison operations
-        // For now, return placeholder values
-        return (false, 0);
+        LotteryTicket storage ticket = tickets[ticketId];
+        LotteryDraw storage draw = draws[drawId];
+        
+        matchingNumbers = 0;
+        
+        // Count matching numbers
+        for (uint256 i = 0; i < MAX_NUMBERS; i++) {
+            for (uint256 j = 0; j < MAX_NUMBERS; j++) {
+                if (ticket.numbers[i] == draw.winningNumbers[j]) {
+                    matchingNumbers++;
+                    break;
+                }
+            }
+        }
+        
+        // Determine if winner (3 or more matches)
+        isWinner = matchingNumbers >= 3;
+        
+        return (isWinner, matchingNumbers);
     }
     
     function claimPrize(
         uint256 ticketId,
-        uint256 drawId,
-        euint32 prizeAmount
+        uint256 drawId
     ) public {
         require(tickets[ticketId].owner == msg.sender, "Only ticket owner can claim");
         require(draws[drawId].isVerified, "Draw must be verified");
         require(tickets[ticketId].isActive, "Ticket must be active");
         
+        (bool isWinner, uint8 matchingNumbers) = checkTicket(ticketId, drawId);
+        require(isWinner, "Ticket is not a winner");
+        
         tickets[ticketId].isWinner = true;
         tickets[ticketId].isActive = false;
         
-        // Transfer prize to winner
-        // Note: In a real implementation, the prize amount would be decrypted and transferred
-        // payable(msg.sender).transfer(FHE.decrypt(prizeAmount));
+        // Calculate prize amount based on matching numbers
+        uint256 prizeAmount = 0;
+        if (matchingNumbers == 6) {
+            prizeAmount = address(this).balance * prizeDistribution.firstPrize / 100;
+        } else if (matchingNumbers == 5) {
+            prizeAmount = address(this).balance * prizeDistribution.secondPrize / 100;
+        } else if (matchingNumbers == 4) {
+            prizeAmount = address(this).balance * prizeDistribution.thirdPrize / 100;
+        } else if (matchingNumbers == 3) {
+            prizeAmount = address(this).balance * prizeDistribution.fourthPrize / 100;
+        }
         
-        emit PrizeClaimed(ticketId, msg.sender, 0); // Prize amount will be decrypted off-chain
+        // Transfer prize to winner
+        if (prizeAmount > 0) {
+            payable(msg.sender).transfer(prizeAmount);
+        }
+        
+        emit PrizeClaimed(ticketId, msg.sender, prizeAmount);
     }
     
-    function updatePlayerReputation(address player, euint32 reputation) public {
+    function updatePlayerReputation(address player, uint32 reputation) public {
         require(msg.sender == verifier, "Only verifier can update reputation");
         require(player != address(0), "Invalid player address");
         
         playerReputation[player] = reputation;
-        emit ReputationUpdated(player, 0); // FHE.decrypt(reputation) - will be decrypted off-chain
+        emit ReputationUpdated(player, reputation);
     }
     
     function getTicketInfo(uint256 ticketId) public view returns (
@@ -209,6 +249,11 @@ contract SecretSpinVault is SepoliaConfig {
             ticket.isActive,
             ticket.isWinner
         );
+    }
+    
+    function getTicketNumbers(uint256 ticketId) public view returns (uint32[] memory) {
+        require(tickets[ticketId].owner == msg.sender, "Only ticket owner can view numbers");
+        return tickets[ticketId].numbers;
     }
     
     function getDrawInfo(uint256 drawId) public view returns (
@@ -228,8 +273,13 @@ contract SecretSpinVault is SepoliaConfig {
         );
     }
     
-    function getPlayerReputation(address player) public view returns (uint8) {
-        return 0; // FHE.decrypt(playerReputation[player]) - will be decrypted off-chain
+    function getWinningNumbers(uint256 drawId) public view returns (uint32[] memory) {
+        require(draws[drawId].isCompleted, "Draw not completed yet");
+        return draws[drawId].winningNumbers;
+    }
+    
+    function getPlayerReputation(address player) public view returns (uint32) {
+        return playerReputation[player];
     }
     
     function getPlayerTickets(address player) public view returns (uint256[] memory) {
@@ -246,12 +296,13 @@ contract SecretSpinVault is SepoliaConfig {
     }
     
     function updatePrizeDistribution(
-        euint32 firstPrize,
-        euint32 secondPrize,
-        euint32 thirdPrize,
-        euint32 fourthPrize
+        uint32 firstPrize,
+        uint32 secondPrize,
+        uint32 thirdPrize,
+        uint32 fourthPrize
     ) public {
         require(msg.sender == owner, "Only owner can update prize distribution");
+        require(firstPrize + secondPrize + thirdPrize + fourthPrize == 100, "Prize distribution must equal 100%");
         
         prizeDistribution = PrizeDistribution({
             firstPrize: firstPrize,
@@ -264,4 +315,3 @@ contract SecretSpinVault is SepoliaConfig {
     // Fallback function to receive ETH
     receive() external payable {}
 }
-
