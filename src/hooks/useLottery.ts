@@ -1,6 +1,5 @@
 import { useContractWrite, useContractRead, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
-import { encryptNumbers } from '@/lib/fhe';
 
 const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '';
 

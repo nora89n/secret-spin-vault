@@ -1,20 +1,23 @@
 /**
  * FHE (Fully Homomorphic Encryption) utilities for Secret Spin Vault
  * This module handles the encryption of lottery numbers using FHE technology
+ * Note: Currently using mock implementation for simplified contract
  */
 
-import { createFhevmInstance } from '@fhevm/solidity';
-
-// FHE instance for encryption operations
+// Mock FHE instance for encryption operations
 let fhevmInstance: any = null;
 
 /**
- * Initialize FHE instance
+ * Initialize FHE instance (mock implementation)
  */
 export const initializeFHE = async () => {
   try {
     if (!fhevmInstance) {
-      fhevmInstance = await createFhevmInstance();
+      // Mock FHE instance for simplified contract
+      fhevmInstance = {
+        encrypt: (value: number) => `0x${value.toString(16).padStart(8, '0')}mock`,
+        decrypt: (encrypted: string) => parseInt(encrypted.substring(2, 10), 16)
+      };
     }
     return fhevmInstance;
   } catch (error) {
