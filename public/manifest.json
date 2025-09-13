@@ -1,0 +1,26 @@
+{
+  "name": "Secret Spin Vault",
+  "short_name": "SecretSpin",
+  "description": "Privacy-preserving lottery system with FHE encryption",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#FFD700",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["finance", "games", "utilities"],
+  "lang": "en",
+  "dir": "ltr"
+}
