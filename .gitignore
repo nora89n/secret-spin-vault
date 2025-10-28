@@ -14,6 +14,7 @@ dist-ssr
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
@@ -22,7 +23,8 @@ dist-ssr
 # Hardhat files
 cache
 artifacts
-contract-info.json
+typechain-types
+deployment-info.json
 
 # Editor directories and files
 .vscode/*
@@ -34,3 +36,9 @@ contract-info.json
 *.njsproj
 *.sln
 *.sw?
+
+# Private keys and sensitive data
+*.pem
+*.key
+private-keys/
+secrets/

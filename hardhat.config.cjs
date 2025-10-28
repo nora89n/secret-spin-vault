@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@nomicfoundation/hardhat-verify");
+require("@fhevm/hardhat-plugin");
 require("dotenv/config");
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -11,6 +12,7 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
+      viaIR: true, // Enable viaIR to avoid "Stack too deep" errors
     },
   },
   networks: {

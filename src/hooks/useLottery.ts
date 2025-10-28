@@ -1,7 +1,8 @@
 import { useContractWrite, useContractRead, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
+import { useEncryptNumbers } from './useZamaInstance';
 
-const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '';
+const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x54aeef31B1E388Aadb2c1fF0888e1d6aD2897E2e';
 
 const LOTTERY_ABI = [
   {
@@ -18,12 +19,17 @@ const LOTTERY_ABI = [
   {
     "inputs": [
       {
-        "internalType": "uint32[]",
-        "name": "numbers",
-        "type": "uint32[]"
+        "internalType": "bytes32[]",
+        "name": "encryptedNumbers",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "inputProof",
+        "type": "bytes32"
       }
     ],
-    "name": "purchaseTicketSimple",
+    "name": "purchaseTicketFHE",
     "outputs": [
       {
         "internalType": "uint256",
@@ -188,15 +194,17 @@ const LOTTERY_ABI = [
 // Removed useLotteryContract as useContract is not available in wagmi v2
 
 export function usePurchaseTicket() {
+  const { encryptNumbers, isEncrypting } = useEncryptNumbers();
+  
   const { 
-    write, 
+    writeContractAsync, 
     data: hash, 
     isLoading: isWriteLoading, 
     error: writeError 
   } = useContractWrite({
     address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
     abi: LOTTERY_ABI,
-    functionName: 'purchaseTicketSimple',
+    functionName: 'purchaseTicketFHE',
     value: parseEther('0.1'), // 0.1 ETH ticket price
   });
 
@@ -210,12 +218,12 @@ export function usePurchaseTicket() {
 
   const purchaseTicket = async (numbers: number[]) => {
     try {
-      // Convert numbers to uint32 array
-      const uint32Numbers = numbers.map(n => Number(n));
+      // Encrypt the numbers using FHE
+      const { handles, proof } = await encryptNumbers(numbers);
       
-      // Call the contract write function
-      write({
-        args: [uint32Numbers],
+      // Call the contract write function with encrypted data
+      await writeContractAsync({
+        args: [handles, proof],
       });
     } catch (error) {
       console.error('Failed to purchase ticket:', error);
@@ -225,7 +233,7 @@ export function usePurchaseTicket() {
 
   return {
     purchaseTicket,
-    isLoading: isWriteLoading || isConfirming,
+    isLoading: isWriteLoading || isConfirming || isEncrypting,
     isConfirmed,
     error: writeError || confirmError,
     hash,

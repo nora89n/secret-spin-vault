@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Lock, Eye, EyeOff, Plus } from "lucide-react";
 import { useAccount } from 'wagmi';
 import { useGetPlayerTickets, useGetTicketInfo, usePurchaseTicket, useGetTicketPrice } from '@/hooks/useLottery';
+import { useDecryptNumbers } from '@/hooks/useZamaInstance';
 import { NumberSelector } from './NumberSelector';
 import { PurchaseConfirmation } from './PurchaseConfirmation';
 import { useState } from 'react';
@@ -177,6 +178,31 @@ export const TicketSection = () => {
 
 const TicketCard = ({ ticketId }: { ticketId: bigint }) => {
   const { ticketInfo, isLoading } = useGetTicketInfo(ticketId);
+  const { decryptNumbers, isDecrypting } = useDecryptNumbers();
+  const [decryptedNumbers, setDecryptedNumbers] = useState<number[] | null>(null);
+  const [showDecrypted, setShowDecrypted] = useState(false);
+
+  const handleDecrypt = async () => {
+    try {
+      // In a real implementation, you would get the encrypted numbers from the contract
+      // For now, we'll use a mock implementation
+      const mockEncryptedNumbers = [
+        '0x' + Math.random().toString(16).substring(2).padStart(64, '0'),
+        '0x' + Math.random().toString(16).substring(2).padStart(64, '0'),
+        '0x' + Math.random().toString(16).substring(2).padStart(64, '0'),
+        '0x' + Math.random().toString(16).substring(2).padStart(64, '0'),
+        '0x' + Math.random().toString(16).substring(2).padStart(64, '0'),
+        '0x' + Math.random().toString(16).substring(2).padStart(64, '0')
+      ];
+      
+      const decrypted = await decryptNumbers(mockEncryptedNumbers);
+      setDecryptedNumbers(decrypted);
+      setShowDecrypted(true);
+    } catch (error) {
+      console.error('Failed to decrypt numbers:', error);
+      toast.error('Failed to decrypt numbers');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -212,18 +238,55 @@ const TicketCard = ({ ticketId }: { ticketId: bigint }) => {
             <Lock className="h-4 w-4 text-casino-red" />
             <span className="text-sm font-medium text-casino-red">ENCRYPTED</span>
           </div>
-          <div className="font-mono text-sm text-muted-foreground break-all">
-            a7f8e9d2c4b6a1f3e8d9c2b5a6f7e2d1c9b8a7f6e5d4c3b2a1f9e8d7c6b5a4f3
-          </div>
+          {showDecrypted && decryptedNumbers ? (
+            <div className="space-y-2">
+              <div className="text-sm text-casino-gold font-medium">Decrypted Numbers:</div>
+              <div className="flex flex-wrap gap-2">
+                {decryptedNumbers.map((number, index) => (
+                  <span key={index} className="bg-casino-gold text-casino-black px-2 py-1 rounded text-sm font-bold">
+                    {number}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="font-mono text-sm text-muted-foreground break-all">
+              {Array.from({ length: 6 }, (_, i) => 
+                '0x' + Math.random().toString(16).substring(2).padStart(64, '0')
+              ).join('\n')}
+            </div>
+          )}
         </div>
         
         <div className="flex gap-2">
-          <Button variant="ticket" size="sm" className="flex-1">
-            <EyeOff className="h-4 w-4 mr-2" />
-            {isWinner ? 'Winner!' : 'Hidden'}
+          <Button 
+            variant="ticket" 
+            size="sm" 
+            className="flex-1"
+            onClick={handleDecrypt}
+            disabled={isDecrypting}
+          >
+            {isDecrypting ? (
+              'Decrypting...'
+            ) : showDecrypted ? (
+              <>
+                <Eye className="h-4 w-4 mr-2" />
+                Decrypted
+              </>
+            ) : (
+              <>
+                <EyeOff className="h-4 w-4 mr-2" />
+                Decrypt
+              </>
+            )}
           </Button>
-          <Button variant="outline" size="sm">
-            <Eye className="h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowDecrypted(!showDecrypted)}
+            disabled={!decryptedNumbers}
+          >
+            {showDecrypted ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
         
