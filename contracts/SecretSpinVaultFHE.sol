@@ -72,8 +72,7 @@ contract SecretSpinVaultFHE {
             fourthPrize: 10   // 10% of prize pool
         });
         
-        // Initialize first draw
-        _createNextDraw();
+        // First draw will be created by calling triggerNextDraw() after deployment
     }
     
     function purchaseTicketFHE(

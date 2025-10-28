@@ -1,8 +1,11 @@
 import { useContractWrite, useContractRead, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import { useEncryptNumbers } from './useZamaInstance';
+import { ethers } from 'ethers';
+import { useEthersSigner } from './useEthersSigner';
+import { useState } from 'react';
 
-const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0xFCc03780F4F0B31b39B09105563050556A615dE6';
+const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x0Ad8E762086f8757EedE52cf648624086667187C';
 
 const LOTTERY_ABI = [
   {
@@ -195,6 +198,45 @@ const LOTTERY_ABI = [
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getTimeUntilNextDraw",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "drawCounter",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ticketCounter",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ] as const;
 
@@ -216,66 +258,68 @@ export function useNeedsDrawTrigger() {
 }
 
 export function useTriggerNextDraw() {
-  const { 
-    writeContractAsync, 
-    data: hash, 
-    isLoading: isWriteLoading, 
-    error: writeError 
-  } = useContractWrite();
-
-  const { 
-    isLoading: isConfirming, 
-    isSuccess: isConfirmed, 
-    error: confirmError 
-  } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const signer = useEthersSigner();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [hash, setHash] = useState<string | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const triggerNextDraw = async () => {
     try {
       console.log('Triggering next draw...');
       
-      const result = await writeContractAsync({
-        address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
-        abi: LOTTERY_ABI,
-        functionName: 'triggerNextDraw',
-        args: [],
-      });
+      if (!signer) {
+        throw new Error('Wallet not connected');
+      }
       
-      console.log('Draw trigger successful:', result);
-      return result;
+      setIsLoading(true);
+      setError(null);
+      setHash(null);
+      setIsConfirmed(false);
+      
+      // Get the actual signer (it's a Promise)
+      const ethersSigner = await signer;
+      
+      // Create contract instance with ethers
+      const contract = new ethers.Contract(LOTTERY_CONTRACT_ADDRESS, LOTTERY_ABI, ethersSigner);
+      
+      const tx = await contract.triggerNextDraw();
+      
+      console.log('Transaction sent:', tx.hash);
+      setHash(tx.hash);
+      
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt);
+      setIsConfirmed(true);
+      
+      return receipt;
     } catch (error) {
       console.error('Failed to trigger next draw:', error);
+      setError(error as Error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
     triggerNextDraw,
-    isLoading: isWriteLoading || isConfirming,
+    isLoading,
     isConfirmed,
-    error: writeError || confirmError,
+    error,
     hash,
   };
 }
 
 export function usePurchaseTicket() {
   const { encryptNumbers, isEncrypting } = useEncryptNumbers();
+  const signer = useEthersSigner();
   
-  const { 
-    writeContractAsync, 
-    data: hash, 
-    isLoading: isWriteLoading, 
-    error: writeError 
-  } = useContractWrite();
-
-  const { 
-    isLoading: isConfirming, 
-    isSuccess: isConfirmed, 
-    error: confirmError 
-  } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [hash, setHash] = useState<string | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const purchaseTicket = async (numbers: number[]) => {
     try {
@@ -287,48 +331,64 @@ export function usePurchaseTicket() {
         throw new Error('Must select exactly 6 numbers');
       }
       
+      if (!signer) {
+        throw new Error('Wallet not connected');
+      }
+      
+      setIsLoading(true);
+      setError(null);
+      setHash(null);
+      setIsConfirmed(false);
+      
       // Encrypt the numbers using FHE
       console.log('Encrypting numbers...');
       const encryptedData = await encryptNumbers(numbers);
       console.log('Encryption successful:', encryptedData);
       
-      // Call the contract write function with encrypted data
+      // Get the actual signer (it's a Promise)
+      const ethersSigner = await signer;
+      
+      // Create contract instance with ethers
+      const contract = new ethers.Contract(LOTTERY_CONTRACT_ADDRESS, LOTTERY_ABI, ethersSigner);
+      
+      // Call the contract method
       console.log('Calling contract...');
       console.log('Contract address:', LOTTERY_CONTRACT_ADDRESS);
       console.log('Function name: purchaseTicketFHE');
       console.log('Encrypted handles:', encryptedData.handles);
-      console.log('Handles length:', encryptedData.handles?.length);
-      console.log('Handles type:', typeof encryptedData.handles);
-      console.log('Handles is array:', Array.isArray(encryptedData.handles));
       console.log('Proof:', encryptedData.proof);
-      console.log('Proof type:', typeof encryptedData.proof);
-      console.log('Args:', [encryptedData.handles, encryptedData.proof]);
-      console.log('Value:', parseEther('0.005').toString());
       
-      const result = await writeContractAsync({
-        address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
-        abi: LOTTERY_ABI,
-        functionName: 'purchaseTicketFHE',
-        args: [
-          encryptedData.handles.map(handle => handle as `0x${string}`),
-          encryptedData.proof as `0x${string}`
-        ],
-        value: parseEther('0.005'),
-      });
-      console.log('Contract call successful:', result);
+      const tx = await contract.purchaseTicketFHE(
+        encryptedData.handles,
+        encryptedData.proof,
+        {
+          value: ethers.parseEther('0.005')
+        }
+      );
       
-      return result;
+      console.log('Transaction sent:', tx.hash);
+      setHash(tx.hash);
+      
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt);
+      setIsConfirmed(true);
+      
+      return receipt;
     } catch (error) {
       console.error('Failed to purchase ticket:', error);
+      setError(error as Error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
     purchaseTicket,
-    isLoading: isWriteLoading || isConfirming || isEncrypting,
+    isLoading: isLoading || isEncrypting,
     isConfirmed,
-    error: writeError || confirmError,
+    error,
     hash,
   };
 }

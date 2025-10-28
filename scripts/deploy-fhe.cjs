@@ -31,13 +31,21 @@ async function main() {
   console.log("- Verifier:", verifier);
 
   // Initialize the first draw
-  console.log("🎲 Checking first draw initialization...");
+  console.log("🎲 Creating first draw after deployment...");
   try {
-    // The constructor should have already created the first draw
+    // Call triggerNextDraw to create the first draw as a separate transaction
+    console.log("📝 Calling triggerNextDraw()...");
+    const tx = await secretSpinVault.triggerNextDraw();
+    console.log("⏳ Waiting for transaction confirmation...");
+    const receipt = await tx.wait();
+    console.log("✅ First draw created successfully!");
+    console.log("- Transaction hash:", tx.hash);
+    console.log("- Gas used:", receipt.gasUsed.toString());
+    
+    // Get draw information
     const currentDrawInfo = await secretSpinVault.getCurrentDraw();
     const [currentDrawId, totalPrizePool, totalTickets, nextDrawTime, isCompleted] = currentDrawInfo;
     
-    console.log("✅ First draw already initialized by constructor!");
     console.log("📊 Draw Information:");
     console.log("- Current Draw ID:", currentDrawId.toString());
     console.log("- Total Prize Pool:", ethers.formatEther(totalPrizePool), "ETH");
@@ -53,8 +61,19 @@ async function main() {
     } else {
       console.log("- Time until next draw:", Math.floor(Number(timeUntilNextDraw) / 86400), "days");
     }
+    
+    // Check for DrawCreated events
+    console.log("🔍 Checking for DrawCreated events...");
+    const filter = secretSpinVault.filters.DrawCreated();
+    const events = await secretSpinVault.queryFilter(filter);
+    console.log("- DrawCreated events found:", events.length);
+    if (events.length > 0) {
+      events.forEach((event, index) => {
+        console.log(`  Event ${index + 1}: Draw ID ${event.args.drawId}, Time ${new Date(Number(event.args.drawTime) * 1000).toLocaleString()}`);
+      });
+    }
   } catch (error) {
-    console.error("❌ Failed to check draw initialization:", error);
+    console.error("❌ Failed to create first draw:", error);
     // Don't exit, just log the error as the contract is still deployed
   }
 
