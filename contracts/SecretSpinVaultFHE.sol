@@ -124,7 +124,7 @@ contract SecretSpinVaultFHE {
     // Internal function to create next draw automatically
     function _createNextDraw() internal {
         uint256 drawId = drawCounter++;
-        uint256 drawTime = nextDrawTime;
+        uint256 drawTime = nextDrawTime == 0 ? block.timestamp + DRAW_INTERVAL : nextDrawTime + DRAW_INTERVAL;
         uint256 endTime = drawTime + DRAW_INTERVAL;
         
         draws[drawId] = LotteryDraw({

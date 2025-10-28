@@ -2,7 +2,7 @@ import { useContractWrite, useContractRead, useWaitForTransactionReceipt } from 
 import { parseEther } from 'viem';
 import { useEncryptNumbers } from './useZamaInstance';
 
-const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x731fA548A7683Ed9449c249103B09e29a99D078b';
+const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x1899560B76a960343947DFFF956c7023EcD59b6D';
 
 const LOTTERY_ABI = [
   {
