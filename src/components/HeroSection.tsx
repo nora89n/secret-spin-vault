@@ -10,7 +10,7 @@ export const HeroSection = () => {
   const { ticketPrice, isLoading: priceLoading } = useGetTicketPrice();
 
   const formatTicketPrice = (price: bigint | undefined) => {
-    if (!price) return '0.1 ETH';
+    if (!price) return '0.005 ETH';
     return `${Number(price) / 1e18} ETH`;
   };
 

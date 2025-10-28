@@ -51,7 +51,7 @@ export const TicketSection = () => {
   };
 
   const formatTicketPrice = (price: bigint | undefined) => {
-    if (!price) return '0.1 ETH';
+    if (!price) return '0.005 ETH';
     return `${Number(price) / 1e18} ETH`;
   };
 
@@ -230,7 +230,7 @@ const TicketCard = ({ ticketId }: { ticketId: bigint }) => {
             <Shield className="h-5 w-5 text-casino-gold" />
             <span className="font-semibold text-casino-gold">Ticket #{ticketId.toString()}</span>
           </div>
-          <span className="text-sm text-muted-foreground">0.1 ETH</span>
+          <span className="text-sm text-muted-foreground">0.005 ETH</span>
         </div>
         
         <div className="bg-casino-black/50 rounded-lg p-4 mb-4 border border-casino-red/20">

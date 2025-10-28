@@ -3,7 +3,7 @@ import { useAccount } from 'wagmi';
 import { createInstance, initSDK, SepoliaConfig } from '@zama-fhe/relayer-sdk/bundle';
 
 // Contract address - will be updated after deployment
-const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x54aeef31B1E388Aadb2c1fF0888e1d6aD2897E2e';
+const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0xcD6D88F56275Db67a9cC5737CB0578EDa5E992BC';
 
 export interface FHEInstance {
   createEncryptedInput: (contractAddress: string, userAddress: string) => {

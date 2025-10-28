@@ -2,7 +2,7 @@ import { useContractWrite, useContractRead, useWaitForTransactionReceipt } from 
 import { parseEther } from 'viem';
 import { useEncryptNumbers } from './useZamaInstance';
 
-const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x54aeef31B1E388Aadb2c1fF0888e1d6aD2897E2e';
+const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0xcD6D88F56275Db67a9cC5737CB0578EDa5E992BC';
 
 const LOTTERY_ABI = [
   {
@@ -205,7 +205,7 @@ export function usePurchaseTicket() {
     address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
     abi: LOTTERY_ABI,
     functionName: 'purchaseTicketFHE',
-    value: parseEther('0.1'), // 0.1 ETH ticket price
+    value: parseEther('0.005'), // 0.005 ETH ticket price
   });
 
   const { 

@@ -40,7 +40,7 @@ contract SecretSpinVaultFHE {
     
     uint256 public ticketCounter;
     uint256 public drawCounter;
-    uint256 public constant TICKET_PRICE = 0.1 ether;
+    uint256 public constant TICKET_PRICE = 0.005 ether;
     uint256 public constant MAX_NUMBERS = 6;
     uint256 public constant NUMBER_RANGE = 49;
     
