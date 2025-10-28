@@ -6,7 +6,7 @@
 import { useZamaInstance, convertHex, convertProofToHex } from '../hooks/useZamaInstance';
 
 // Contract address
-const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x1899560B76a960343947DFFF956c7023EcD59b6D';
+const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x22DC5027b6dA0C2e50c8f04655113C0C497948ED';
 
 /**
  * Initialize FHE instance

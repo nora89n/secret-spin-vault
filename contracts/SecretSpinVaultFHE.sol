@@ -55,6 +55,7 @@ contract SecretSpinVaultFHE {
     
     event TicketPurchased(uint256 indexed ticketId, address indexed player, externalEuint32[] encryptedNumbers);
     event DrawCreated(uint256 indexed drawId, uint256 drawTime);
+    event DrawTriggered(uint256 indexed drawId, address indexed triggerer, uint256 reward);
     event DrawCompleted(uint256 indexed drawId, externalEuint32[] encryptedWinningNumbers);
     event PrizeClaimed(uint256 indexed ticketId, address indexed winner, uint256 prizeAmount);
     event ReputationUpdated(address indexed player, uint32 reputation);
@@ -143,6 +144,20 @@ contract SecretSpinVaultFHE {
         nextDrawTime = endTime;
         
         emit DrawCreated(drawId, drawTime);
+    }
+    
+    // Public function to trigger next draw creation (anyone can call, pays gas)
+    function triggerNextDraw() public {
+        require(block.timestamp >= nextDrawTime, "Next draw time has not arrived yet");
+        
+        // Give a small reward to the caller (0.001 ETH) if contract has enough balance
+        if (address(this).balance >= 0.001 ether) {
+            payable(msg.sender).transfer(0.001 ether);
+        }
+        
+        _createNextDraw();
+        
+        emit DrawTriggered(drawCounter - 1, msg.sender, address(this).balance >= 0.001 ether ? 0.001 ether : 0);
     }
     
     // Manual draw creation (owner only)
