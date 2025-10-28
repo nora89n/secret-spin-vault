@@ -19,7 +19,7 @@ const LOTTERY_ABI = [
   {
     "inputs": [
       {
-        "internalType": "bytes32[]",
+        "internalType": "externalEuint32[]",
         "name": "encryptedNumbers",
         "type": "bytes32[]"
       },
