@@ -201,12 +201,7 @@ export function usePurchaseTicket() {
     data: hash, 
     isLoading: isWriteLoading, 
     error: writeError 
-  } = useContractWrite({
-    address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
-    abi: LOTTERY_ABI,
-    functionName: 'purchaseTicketFHE',
-    value: parseEther('0.005'), // 0.005 ETH ticket price
-  });
+  } = useContractWrite();
 
   const { 
     isLoading: isConfirming, 
@@ -231,25 +226,29 @@ export function usePurchaseTicket() {
       const encryptedData = await encryptNumbers(numbers);
       console.log('Encryption successful:', encryptedData);
       
-              // Call the contract write function with encrypted data
-              console.log('Calling contract...');
-              console.log('Contract address:', LOTTERY_CONTRACT_ADDRESS);
-              console.log('Function name: purchaseTicketFHE');
-              console.log('Encrypted handles:', encryptedData.handles);
-              console.log('Handles length:', encryptedData.handles?.length);
-              console.log('Handles type:', typeof encryptedData.handles);
-              console.log('Handles is array:', Array.isArray(encryptedData.handles));
-              console.log('Proof:', encryptedData.proof);
-              console.log('Proof type:', typeof encryptedData.proof);
-              console.log('Args:', [encryptedData.handles, encryptedData.proof]);
-              console.log('Value:', parseEther('0.005').toString());
-              
-              const result = await writeContractAsync({
-                args: [
-                  encryptedData.handles.map(handle => handle as `0x${string}`),
-                  encryptedData.proof as `0x${string}`
-                ],
-              });
+      // Call the contract write function with encrypted data
+      console.log('Calling contract...');
+      console.log('Contract address:', LOTTERY_CONTRACT_ADDRESS);
+      console.log('Function name: purchaseTicketFHE');
+      console.log('Encrypted handles:', encryptedData.handles);
+      console.log('Handles length:', encryptedData.handles?.length);
+      console.log('Handles type:', typeof encryptedData.handles);
+      console.log('Handles is array:', Array.isArray(encryptedData.handles));
+      console.log('Proof:', encryptedData.proof);
+      console.log('Proof type:', typeof encryptedData.proof);
+      console.log('Args:', [encryptedData.handles, encryptedData.proof]);
+      console.log('Value:', parseEther('0.005').toString());
+      
+      const result = await writeContractAsync({
+        address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
+        abi: LOTTERY_ABI,
+        functionName: 'purchaseTicketFHE',
+        args: [
+          encryptedData.handles.map(handle => handle as `0x${string}`),
+          encryptedData.proof as `0x${string}`
+        ],
+        value: parseEther('0.005'),
+      });
       console.log('Contract call successful:', result);
       
       return result;
