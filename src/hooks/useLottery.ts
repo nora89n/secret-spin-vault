@@ -245,7 +245,10 @@ export function usePurchaseTicket() {
               console.log('Value:', parseEther('0.005').toString());
               
               const result = await writeContractAsync({
-                args: [encryptedData.handles, encryptedData.proof],
+                args: [
+                  encryptedData.handles.map(handle => handle as `0x${string}`),
+                  encryptedData.proof as `0x${string}`
+                ],
               });
       console.log('Contract call successful:', result);
       
