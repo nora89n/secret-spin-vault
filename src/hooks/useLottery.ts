@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import { useEthersSigner } from './useEthersSigner';
 import { useState } from 'react';
 
-const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x0Ad8E762086f8757EedE52cf648624086667187C';
+const LOTTERY_CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x8B668f84D5cdfEfffEF16F4eD810B83A8545414E';
 
 const LOTTERY_ABI = [
   {

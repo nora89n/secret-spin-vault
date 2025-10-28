@@ -11,7 +11,7 @@ export const FHEStatusDebug = () => {
   const { address, isConnected } = useAccount();
   const { triggerNextDraw, isLoading: isTriggering } = useTriggerNextDraw();
 
-  const contractAddress = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0xFCc03780F4F0B31b39B09105563050556A615dE6';
+  const contractAddress = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x8B668f84D5cdfEfffEF16F4eD810B83A8545414E';
 
   return (
     <Card className="bg-gradient-luxury border-casino-gold/20">
