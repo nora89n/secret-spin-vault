@@ -231,16 +231,22 @@ export function usePurchaseTicket() {
       const encryptedData = await encryptNumbers(numbers);
       console.log('Encryption successful:', encryptedData);
       
-      // Call the contract write function with encrypted data
-      console.log('Calling contract...');
-      console.log('Contract address:', LOTTERY_CONTRACT_ADDRESS);
-      console.log('Function name: purchaseTicketFHE');
-      console.log('Args:', [encryptedData.handles, encryptedData.proof]);
-      console.log('Value:', parseEther('0.005').toString());
-      
-      const result = await writeContractAsync({
-        args: [encryptedData.handles, encryptedData.proof],
-      });
+              // Call the contract write function with encrypted data
+              console.log('Calling contract...');
+              console.log('Contract address:', LOTTERY_CONTRACT_ADDRESS);
+              console.log('Function name: purchaseTicketFHE');
+              console.log('Encrypted handles:', encryptedData.handles);
+              console.log('Handles length:', encryptedData.handles?.length);
+              console.log('Handles type:', typeof encryptedData.handles);
+              console.log('Handles is array:', Array.isArray(encryptedData.handles));
+              console.log('Proof:', encryptedData.proof);
+              console.log('Proof type:', typeof encryptedData.proof);
+              console.log('Args:', [encryptedData.handles, encryptedData.proof]);
+              console.log('Value:', parseEther('0.005').toString());
+              
+              const result = await writeContractAsync({
+                args: [encryptedData.handles, encryptedData.proof],
+              });
       console.log('Contract call successful:', result);
       
       return result;
