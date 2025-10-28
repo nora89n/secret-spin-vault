@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 
 export const FHEStatusDebug = () => {
-  const { instance, isLoading, error, retry } = useZamaInstance();
+  const { instance, isLoading, error, isInitialized, retry } = useZamaInstance();
   const { address, isConnected } = useAccount();
 
   const contractAddress = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0xcD6D88F56275Db67a9cC5737CB0578EDa5E992BC';
@@ -39,13 +39,13 @@ export const FHEStatusDebug = () => {
         <div className="flex items-center gap-2">
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
-          ) : instance ? (
+          ) : isInitialized && instance ? (
             <CheckCircle className="h-4 w-4 text-green-500" />
           ) : (
             <AlertCircle className="h-4 w-4 text-red-500" />
           )}
           <span className="text-sm">
-            FHE Instance: {isLoading ? 'Loading...' : instance ? 'Ready' : 'Failed'}
+            FHE Instance: {isLoading ? 'Loading...' : isInitialized ? 'Ready' : 'Failed'}
           </span>
         </div>
 
@@ -82,7 +82,7 @@ export const FHEStatusDebug = () => {
         )}
 
         {/* Test Encryption Button */}
-        {instance && isConnected && (
+        {isInitialized && instance && isConnected && (
           <Button
             onClick={async () => {
               try {

@@ -21,30 +21,40 @@ export interface FHEInstance {
 
 export const useZamaInstance = () => {
   const [instance, setInstance] = useState<FHEInstance | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const initializeZama = useCallback(async () => {
-    if (!window.ethereum) {
-      setError('Ethereum provider not found');
-      setIsLoading(false);
-      return;
-    }
+    if (isLoading || isInitialized) return;
 
     try {
       setIsLoading(true);
       setError(null);
-      
+
+      // Check if ethereum provider is available
+      if (!(window as any).ethereum) {
+        throw new Error('Ethereum provider not found');
+      }
+
       await initSDK();
-      const zamaInstance = await createInstance(SepoliaConfig);
+
+      const config = {
+        ...SepoliaConfig,
+        network: (window as any).ethereum
+      };
+
+      const zamaInstance = await createInstance(config);
       setInstance(zamaInstance);
-    } catch (error) {
-      console.error('Failed to initialize Zama instance:', error);
-      setError('Failed to initialize FHE encryption service');
+      setIsInitialized(true);
+
+    } catch (err) {
+      console.error('Failed to initialize Zama instance:', err);
+      setError('Failed to initialize encryption service. Please ensure you have a wallet connected.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isLoading, isInitialized]);
 
   useEffect(() => {
     initializeZama();
@@ -54,6 +64,7 @@ export const useZamaInstance = () => {
     instance,
     isLoading,
     error,
+    isInitialized,
     retry: initializeZama
   };
 };

@@ -34,6 +34,17 @@
 
   <body>
     <div id="root"></div>
+    <!-- Ethereum Provider Protection -->
+    <script>
+      // Prevent ethereum property redefinition
+      if (window.ethereum && !window.ethereum.isMetaMask) {
+        Object.defineProperty(window, 'ethereum', {
+          value: window.ethereum,
+          writable: false,
+          configurable: false
+        });
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
