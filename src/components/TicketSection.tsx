@@ -3,9 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Lock, Eye, EyeOff, Plus } from "lucide-react";
 import { useAccount } from 'wagmi';
 import { useGetPlayerTickets, useGetTicketInfo, usePurchaseTicket, useGetTicketPrice } from '@/hooks/useLottery';
-import { useDecryptNumbers } from '@/hooks/useZamaInstance';
+import { useDecryptNumbers, useZamaInstance } from '@/hooks/useZamaInstance';
 import { NumberSelector } from './NumberSelector';
 import { PurchaseConfirmation } from './PurchaseConfirmation';
+import { FHEStatusDebug } from './FHEStatusDebug';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -14,6 +15,7 @@ export const TicketSection = () => {
   const { playerTickets, isLoading: ticketsLoading } = useGetPlayerTickets(address || '0x0');
   const { ticketPrice, isLoading: priceLoading } = useGetTicketPrice();
   const { purchaseTicket, isLoading: purchaseLoading, isConfirmed, error: purchaseError, hash } = usePurchaseTicket();
+  const { instance, isLoading: fheLoading, error: fheError } = useZamaInstance();
   
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -28,6 +30,22 @@ export const TicketSection = () => {
       toast.error('Please connect your wallet first');
       return;
     }
+    
+    if (fheLoading) {
+      toast.error('FHE encryption service is still loading. Please wait...');
+      return;
+    }
+    
+    if (fheError) {
+      toast.error(`FHE encryption error: ${fheError}`);
+      return;
+    }
+    
+    if (!instance) {
+      toast.error('FHE encryption service not available. Please refresh the page.');
+      return;
+    }
+    
     setShowBuyModal(true);
   };
 
@@ -90,9 +108,11 @@ export const TicketSection = () => {
                 variant="casino" 
                 className="w-full"
                 onClick={handlePurchaseClick}
-                disabled={!address || purchaseLoading}
+                disabled={!address || purchaseLoading || fheLoading}
               >
-                {purchaseLoading ? (
+                {fheLoading ? (
+                  'Loading FHE...'
+                ) : purchaseLoading ? (
                   'Purchasing...'
                 ) : (
                   <>
@@ -109,7 +129,7 @@ export const TicketSection = () => {
         </div>
         
         <div className="text-center">
-          <div className="bg-card rounded-xl p-8 border border-casino-gold/20 max-w-2xl mx-auto">
+          <div className="bg-card rounded-xl p-8 border border-casino-gold/20 max-w-2xl mx-auto mb-8">
             <h3 className="text-2xl font-bold text-casino-gold mb-4">How It Works</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
               <div>
@@ -126,6 +146,9 @@ export const TicketSection = () => {
               </div>
             </div>
           </div>
+          
+          {/* FHE Debug Component */}
+          <FHEStatusDebug />
         </div>
       </div>
 

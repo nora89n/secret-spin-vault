@@ -110,24 +110,44 @@ export const useEncryptNumbers = () => {
   const [isEncrypting, setIsEncrypting] = useState(false);
 
   const encryptNumbers = useCallback(async (numbers: number[]) => {
-    if (!instance || !address || !CONTRACT_ADDRESS) {
-      throw new Error('Missing wallet or encryption service');
+    console.log('useEncryptNumbers called with:', numbers);
+    console.log('Instance available:', !!instance);
+    console.log('Address available:', !!address);
+    console.log('Contract address:', CONTRACT_ADDRESS);
+    
+    if (!instance) {
+      throw new Error('FHE instance not initialized. Please wait for initialization to complete.');
+    }
+    
+    if (!address) {
+      throw new Error('Wallet not connected. Please connect your wallet first.');
+    }
+    
+    if (!CONTRACT_ADDRESS) {
+      throw new Error('Contract address not configured');
     }
 
     setIsEncrypting(true);
     try {
+      console.log('Creating encrypted input...');
       const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
       
       // Add each number as euint32
       for (const number of numbers) {
+        console.log('Adding number:', number);
         input.add32(number);
       }
       
+      console.log('Encrypting input...');
       const encryptedInput = await input.encrypt();
+      console.log('Encryption result:', encryptedInput);
       
       // Convert handles to hex strings
       const handles = encryptedInput.handles.map(convertHex);
       const proof = convertProofToHex(encryptedInput.inputProof);
+      
+      console.log('Converted handles:', handles);
+      console.log('Converted proof:', proof);
       
       return {
         handles,
@@ -135,7 +155,7 @@ export const useEncryptNumbers = () => {
       };
     } catch (error) {
       console.error('Encryption failed:', error);
-      throw new Error('Failed to encrypt numbers');
+      throw new Error(`Failed to encrypt numbers: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsEncrypting(false);
     }

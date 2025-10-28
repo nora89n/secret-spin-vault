@@ -218,13 +218,27 @@ export function usePurchaseTicket() {
 
   const purchaseTicket = async (numbers: number[]) => {
     try {
+      console.log('Starting ticket purchase process...');
+      console.log('Numbers to encrypt:', numbers);
+      
+      // Validate numbers first
+      if (!numbers || numbers.length !== 6) {
+        throw new Error('Must select exactly 6 numbers');
+      }
+      
       // Encrypt the numbers using FHE
+      console.log('Encrypting numbers...');
       const encryptedData = await encryptNumbers(numbers);
+      console.log('Encryption successful:', encryptedData);
       
       // Call the contract write function with encrypted data
-      await writeContractAsync({
+      console.log('Calling contract...');
+      const result = await writeContractAsync({
         args: [encryptedData.handles, encryptedData.proof],
       });
+      console.log('Contract call successful:', result);
+      
+      return result;
     } catch (error) {
       console.error('Failed to purchase ticket:', error);
       throw error;

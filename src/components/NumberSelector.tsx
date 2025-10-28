@@ -200,7 +200,7 @@ export const NumberSelector = ({
                 Your numbers: {selectedNumbers.sort((a, b) => a - b).join(', ')}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Ticket price: 0.1 ETH
+                Ticket price: 0.005 ETH
               </p>
             </div>
           </CardContent>
