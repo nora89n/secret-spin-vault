@@ -2,10 +2,17 @@ import { Button } from "@/components/ui/button";
 import { Wallet, Shield, Timer } from "lucide-react";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
+import { useGetTicketPrice } from '@/hooks/useLottery';
 import casinoHero from "@/assets/casino-hero.jpg";
 
 export const HeroSection = () => {
   const { isConnected } = useAccount();
+  const { ticketPrice, isLoading: priceLoading } = useGetTicketPrice();
+
+  const formatTicketPrice = (price: bigint | undefined) => {
+    if (!price) return '0.1 ETH';
+    return `${Number(price) / 1e18} ETH`;
+  };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -20,10 +27,10 @@ export const HeroSection = () => {
       <div className="relative z-10 text-center max-w-4xl mx-auto px-6">
         <div className="animate-float">
           <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-gold bg-clip-text text-transparent">
-            Play Big,
+            Secret Spin Vault
           </h1>
-          <h2 className="text-6xl md:text-8xl font-bold mb-8 bg-gradient-casino bg-clip-text text-transparent">
-            Keep It Secret
+          <h2 className="text-4xl md:text-6xl font-bold mb-8 bg-gradient-casino bg-clip-text text-transparent">
+            Privacy-Preserving Lottery
           </h2>
         </div>
         
@@ -139,21 +146,14 @@ export const HeroSection = () => {
               );
             }}
           </ConnectButton.Custom>
-          
-          {isConnected && (
-            <Button variant="casino" size="lg" className="text-lg px-8 py-4 h-auto">
-              <Shield className="mr-2 h-6 w-6" />
-              Buy Encrypted Ticket
-            </Button>
-          )}
         </div>
         
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
           <div className="text-center p-6 bg-gradient-luxury rounded-xl border border-casino-gold/20 hover:border-casino-gold/40 transition-all duration-300 hover:shadow-gold">
             <Shield className="h-12 w-12 text-casino-gold mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-casino-gold mb-2">Encrypted Numbers</h3>
-            <p className="text-muted-foreground">Your lottery numbers are encrypted and hidden until the draw</p>
+            <h3 className="text-xl font-bold text-casino-gold mb-2">FHE Encrypted</h3>
+            <p className="text-muted-foreground">Your lottery numbers are encrypted using Fully Homomorphic Encryption</p>
           </div>
           
           <div className="text-center p-6 bg-gradient-luxury rounded-xl border border-casino-gold/20 hover:border-casino-gold/40 transition-all duration-300 hover:shadow-gold">
@@ -166,6 +166,18 @@ export const HeroSection = () => {
             <Wallet className="h-12 w-12 text-casino-gold mx-auto mb-4" />
             <h3 className="text-xl font-bold text-casino-gold mb-2">Instant Payout</h3>
             <p className="text-muted-foreground">Winners receive automatic payouts to their wallets</p>
+          </div>
+        </div>
+
+        {/* Ticket Price Display */}
+        <div className="mt-12 p-6 bg-gradient-luxury rounded-xl border border-casino-gold/20 max-w-md mx-auto">
+          <div className="text-lg text-muted-foreground mb-2">Ticket Price</div>
+          <div className="text-3xl font-bold text-casino-gold">
+            {priceLoading ? (
+              <div className="animate-pulse">Loading...</div>
+            ) : (
+              formatTicketPrice(ticketPrice)
+            )}
           </div>
         </div>
       </div>

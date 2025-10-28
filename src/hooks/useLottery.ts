@@ -24,9 +24,9 @@ const LOTTERY_ABI = [
         "type": "bytes32[]"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "bytes",
         "name": "inputProof",
-        "type": "bytes32"
+        "type": "bytes"
       }
     ],
     "name": "purchaseTicketFHE",
@@ -219,11 +219,11 @@ export function usePurchaseTicket() {
   const purchaseTicket = async (numbers: number[]) => {
     try {
       // Encrypt the numbers using FHE
-      const { handles, proof } = await encryptNumbers(numbers);
+      const encryptedData = await encryptNumbers(numbers);
       
       // Call the contract write function with encrypted data
       await writeContractAsync({
-        args: [handles, proof],
+        args: [encryptedData.handles, encryptedData.proof],
       });
     } catch (error) {
       console.error('Failed to purchase ticket:', error);
@@ -294,6 +294,34 @@ export function useGetTicketPrice() {
 
   return {
     ticketPrice: data,
+    isLoading,
+    error,
+  };
+}
+
+export function useGetCurrentDraw() {
+  const { data, isLoading, error } = useContractRead({
+    address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
+    abi: LOTTERY_ABI,
+    functionName: 'drawCounter',
+  });
+
+  return {
+    currentDrawId: data,
+    isLoading,
+    error,
+  };
+}
+
+export function useGetTotalTickets() {
+  const { data, isLoading, error } = useContractRead({
+    address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
+    abi: LOTTERY_ABI,
+    functionName: 'ticketCounter',
+  });
+
+  return {
+    totalTickets: data,
     isLoading,
     error,
   };
