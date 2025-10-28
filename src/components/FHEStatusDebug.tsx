@@ -8,7 +8,7 @@ export const FHEStatusDebug = () => {
   const { instance, isLoading, error } = useZamaInstance();
   const { address, isConnected } = useAccount();
 
-  const contractAddress = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x7153880A29FE5F204156970CAFe761AfcE1ac65f';
+  const contractAddress = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x731fA548A7683Ed9449c249103B09e29a99D078b';
 
   return (
     <Card className="bg-gradient-luxury border-casino-gold/20">

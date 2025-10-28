@@ -4,7 +4,7 @@ import { createInstance, initSDK, SepoliaConfig } from '@zama-fhe/relayer-sdk/bu
 import type { FhevmInstance } from '@zama-fhe/relayer-sdk/bundle';
 
 // Contract address - will be updated after deployment
-const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x7153880A29FE5F204156970CAFe761AfcE1ac65f';
+const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x731fA548A7683Ed9449c249103B09e29a99D078b';
 
 export const useZamaInstance = () => {
   const [instance, setInstance] = useState<FhevmInstance | null>(null);

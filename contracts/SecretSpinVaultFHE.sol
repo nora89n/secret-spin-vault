@@ -43,10 +43,15 @@ contract SecretSpinVaultFHE {
     uint256 public constant TICKET_PRICE = 0.005 ether;
     uint256 public constant MAX_NUMBERS = 6;
     uint256 public constant NUMBER_RANGE = 49;
+    uint256 public constant DRAW_INTERVAL = 7 days; // Weekly draws
     
     address public owner;
     address public verifier;
     PrizeDistribution public prizeDistribution;
+    
+    // Current active draw
+    uint256 public currentDrawId;
+    uint256 public nextDrawTime;
     
     event TicketPurchased(uint256 indexed ticketId, address indexed player, externalEuint32[] encryptedNumbers);
     event DrawCreated(uint256 indexed drawId, uint256 drawTime);
@@ -65,6 +70,9 @@ contract SecretSpinVaultFHE {
             thirdPrize: 15,   // 15% of prize pool
             fourthPrize: 10   // 10% of prize pool
         });
+        
+        // Initialize first draw
+        _createNextDraw();
     }
     
     function purchaseTicketFHE(
@@ -73,6 +81,11 @@ contract SecretSpinVaultFHE {
     ) public payable returns (uint256) {
         require(msg.value == TICKET_PRICE, "Incorrect ticket price");
         require(encryptedNumbers.length == MAX_NUMBERS, "Must provide exactly 6 encrypted numbers");
+        
+        // Check if we need to create a new draw
+        if (block.timestamp >= nextDrawTime) {
+            _createNextDraw();
+        }
         
         uint256 ticketId = ticketCounter++;
         
@@ -98,12 +111,41 @@ contract SecretSpinVaultFHE {
             FHE.allow(tickets[ticketId].numbers[i], msg.sender);
         }
         
+        // Add ticket to current draw and update prize pool
+        draws[currentDrawId].totalTickets++;
+        draws[currentDrawId].totalPrizePool += TICKET_PRICE;
+        
         playerTickets[msg.sender].push(ticketId);
         
         emit TicketPurchased(ticketId, msg.sender, encryptedNumbers);
         return ticketId;
     }
     
+    // Internal function to create next draw automatically
+    function _createNextDraw() internal {
+        uint256 drawId = drawCounter++;
+        uint256 drawTime = nextDrawTime;
+        uint256 endTime = drawTime + DRAW_INTERVAL;
+        
+        draws[drawId] = LotteryDraw({
+            drawId: drawId,
+            winningNumbers: new euint32[](MAX_NUMBERS),
+            totalPrizePool: 0,
+            totalTickets: 0,
+            drawTime: drawTime,
+            endTime: endTime,
+            isCompleted: false,
+            isVerified: false,
+            verifier: address(0)
+        });
+        
+        currentDrawId = drawId;
+        nextDrawTime = endTime;
+        
+        emit DrawCreated(drawId, drawTime);
+    }
+    
+    // Manual draw creation (owner only)
     function createDraw(
         uint256 _drawTime,
         uint256 _endTime
@@ -274,6 +316,34 @@ contract SecretSpinVaultFHE {
     
     function getPlayerReputation(address player) public view returns (uint32) {
         return playerReputation[player];
+    }
+    
+    // Get current draw information
+    function getCurrentDraw() public view returns (uint256, uint256, uint256, uint256, bool) {
+        return (
+            currentDrawId,
+            draws[currentDrawId].totalPrizePool,
+            draws[currentDrawId].totalTickets,
+            nextDrawTime,
+            draws[currentDrawId].isCompleted
+        );
+    }
+    
+    // Get total prize pool across all draws
+    function getTotalPrizePool() public view returns (uint256) {
+        uint256 total = 0;
+        for (uint256 i = 0; i < drawCounter; i++) {
+            total += draws[i].totalPrizePool;
+        }
+        return total;
+    }
+    
+    // Get time until next draw
+    function getTimeUntilNextDraw() public view returns (uint256) {
+        if (block.timestamp >= nextDrawTime) {
+            return 0;
+        }
+        return nextDrawTime - block.timestamp;
     }
     
     function getPlayerTickets(address player) public view returns (uint256[] memory) {
