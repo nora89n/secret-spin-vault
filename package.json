@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.ts --network sepolia",
-    "deploy:fhe": "hardhat run scripts/deploy-fhe.cjs --network sepolia",
+    "deploy:simple": "hardhat run scripts/deploy-simple.cjs --network sepolia",
     "test:contract": "hardhat run scripts/test-purchase.cjs",
     "test:fhe": "hardhat run scripts/test-fhe.cjs --network sepolia",
     "test:local": "hardhat run scripts/test-purchase.cjs --network localhost"

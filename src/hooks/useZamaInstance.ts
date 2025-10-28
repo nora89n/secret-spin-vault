@@ -4,7 +4,7 @@ import { createInstance, initSDK, SepoliaConfig } from '@zama-fhe/relayer-sdk/bu
 import type { FhevmInstance } from '@zama-fhe/relayer-sdk/bundle';
 
 // Contract address - will be updated after deployment
-const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x8B668f84D5cdfEfffEF16F4eD810B83A8545414E';
+const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x947085bd4eac8CfBE396F8280A34b1dc415043A9';
 
 export const useZamaInstance = () => {
   const [instance, setInstance] = useState<FhevmInstance | null>(null);
@@ -193,7 +193,10 @@ export const useEncryptNumbers = () => {
       console.log('📊 Final result:', {
         handlesCount: handles.length,
         proofLength: proof.length,
-        handles: handles.map(h => h.substring(0, 10) + '...')
+        handles: handles.map(h => {
+          const handleStr = typeof h === 'string' ? h : String(h);
+          return handleStr.substring(0, 10) + '...';
+        })
       });
       
       return {
@@ -213,8 +216,75 @@ export const useEncryptNumbers = () => {
     }
   }, [instance, address]);
 
+  const encryptNumber = async (number: number): Promise<{ handle: string; proof: string }> => {
+    if (!instance) {
+      throw new Error('FHE instance not initialized');
+    }
+    
+    if (!address) {
+      throw new Error('User address not available');
+    }
+    
+    if (!CONTRACT_ADDRESS) {
+      throw new Error('Contract address not configured');
+    }
+
+    setIsEncrypting(true);
+    try {
+      console.log('🔄 Step 1: Creating encrypted input...');
+      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
+      console.log('✅ Step 1 completed: Encrypted input created');
+      
+      console.log('🔄 Step 2: Adding encrypted number...');
+      console.log('📊 Adding number:', number);
+      
+      // Validate number is within 8-bit range (1-49)
+      if (number < 1 || number > 49) {
+        throw new Error(`Number ${number} must be between 1 and 49`);
+      }
+      
+      input.add8(number);
+      
+      console.log('✅ Step 2 completed: Number added to encrypted input');
+      
+      console.log('🔄 Step 3: Encrypting input...');
+      const encryptedInput = await input.encrypt();
+      console.log('✅ Step 3 completed: Input encrypted successfully');
+      console.log('📊 Encryption result:', {
+        handlesCount: encryptedInput.handles.length,
+        proofLength: encryptedInput.inputProof.length
+      });
+      
+      console.log('🔄 Step 4: Converting to hex format...');
+      const handle = convertHex(encryptedInput.handles[0]);
+      const proof = convertProofToHex(encryptedInput.inputProof);
+      console.log('✅ Step 4 completed: Data converted to hex format');
+      
+      console.log('🎉 FHE encryption completed successfully!');
+      console.log('📊 Final result:', {
+        handlesCount: encryptedInput.handles.length,
+        proofLength: proof.length,
+        handles: encryptedInput.handles.map(h => {
+          const handleStr = typeof h === 'string' ? h : String(h);
+          return handleStr.substring(0, 10) + '...';
+        })
+      });
+      
+      return {
+        handle,
+        proof,
+      };
+    } catch (error) {
+      console.error('❌ FHE encryption failed:', error);
+      throw error;
+    } finally {
+      setIsEncrypting(false);
+    }
+  };
+
   return {
     encryptNumbers,
+    encryptNumber,
     isEncrypting
   };
 };

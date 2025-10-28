@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Wallet, Shield, Timer } from "lucide-react";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
-import { useGetTicketPrice } from '@/hooks/useLottery';
+import { useGetTicketPrice } from '@/hooks/useLotterySimple';
 import casinoHero from "@/assets/casino-hero.jpg";
 
 export const HeroSection = () => {

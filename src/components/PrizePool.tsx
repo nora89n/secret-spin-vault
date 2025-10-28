@@ -1,25 +1,25 @@
 import { Trophy, TrendingUp, Users, Calendar } from "lucide-react";
-import { useGetTicketPrice, useGetTotalTickets, useGetCurrentDraw } from '@/hooks/useLottery';
+import { useGetTicketPrice, useGetCurrentRound, useGetPrizePool } from '@/hooks/useLotterySimple';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 
 export const PrizePool = () => {
   const { ticketPrice, isLoading: priceLoading } = useGetTicketPrice();
-  const { totalTickets, isLoading: ticketsLoading } = useGetTotalTickets();
-  const { currentDrawId, isLoading: drawLoading } = useGetCurrentDraw();
+  const { currentRound, isLoading: roundLoading } = useGetCurrentRound();
+  const { prizePool, isLoading: poolLoading } = useGetPrizePool(currentRound || 0n);
   const { address } = useAccount();
 
-  // 计算下次开奖时间 (每周日晚上8点)
+  // Calculate next draw time (simplified - just show current round info)
   const getNextDrawTime = () => {
     const now = new Date();
     const nextSunday = new Date();
     
-    // 计算到下一个周日的天数
+    // Calculate days until next Sunday
     const daysUntilSunday = (7 - now.getDay()) % 7;
-    const daysToAdd = daysUntilSunday === 0 ? 7 : daysUntilSunday; // 如果今天是周日，则下周
+    const daysToAdd = daysUntilSunday === 0 ? 7 : daysUntilSunday;
     
     nextSunday.setDate(now.getDate() + daysToAdd);
-    nextSunday.setHours(20, 0, 0, 0); // 晚上8点
+    nextSunday.setHours(20, 0, 0, 0); // 8 PM
     
     return nextSunday;
   };
@@ -27,14 +27,13 @@ export const PrizePool = () => {
   const [nextDrawTime, setNextDrawTime] = useState(getNextDrawTime());
   const [timeUntilDraw, setTimeUntilDraw] = useState('');
 
-  // 更新倒计时
+  // Update countdown
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date();
       const diff = nextDrawTime.getTime() - now.getTime();
       
       if (diff <= 0) {
-        // 如果时间已过，计算下一个周日
         const newNextDraw = getNextDrawTime();
         setNextDrawTime(newNextDraw);
         return;
@@ -54,19 +53,13 @@ export const PrizePool = () => {
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 60000); // 每分钟更新
+    const interval = setInterval(updateCountdown, 60000); // Update every minute
 
     return () => clearInterval(interval);
   }, [nextDrawTime]);
 
-  // Calculate prize pool based on tickets sold
-  const calculatePrizePool = () => {
-    if (!ticketPrice || !totalTickets) return 0;
-    const totalValue = Number(ticketPrice) * Number(totalTickets);
-    return totalValue / 1e18; // Convert from wei to ETH
-  };
-
-  const prizePoolETH = calculatePrizePool();
+  // Calculate prize pool in ETH
+  const prizePoolETH = prizePool ? Number(prizePool) / 1e18 : 0;
   const prizePoolUSD = prizePoolETH * 2500; // Approximate ETH price
 
   const formatNumber = (num: number) => {
@@ -87,20 +80,20 @@ export const PrizePool = () => {
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold mb-6 bg-gradient-gold bg-clip-text text-transparent">
-            Weekly Prize Pool
+            Current Round Prize Pool
           </h2>
           <div className="text-7xl md:text-8xl font-bold text-casino-gold animate-glow mb-4">
-            {priceLoading || ticketsLoading ? (
+            {poolLoading ? (
               <div className="animate-pulse">Loading...</div>
             ) : (
               formatNumber(prizePoolUSD)
             )}
           </div>
           <p className="text-xl text-muted-foreground">
-            {priceLoading || ticketsLoading ? (
+            {poolLoading ? (
               'Calculating prize pool...'
             ) : (
-              `${formatETH(prizePoolETH)} • Weekly draws every Sunday at 8:00 PM`
+              `${formatETH(prizePoolETH)} • Round ${currentRound?.toString() || '1'}`
             )}
           </p>
         </div>
@@ -109,25 +102,25 @@ export const PrizePool = () => {
           <div className="text-center p-8 bg-card rounded-xl border border-casino-red/20 hover:border-casino-red/40 transition-all duration-300 hover:shadow-casino">
             <Trophy className="h-16 w-16 text-casino-red mx-auto mb-4" />
             <div className="text-3xl font-bold text-casino-gold mb-2">
-              {priceLoading || ticketsLoading ? (
+              {poolLoading ? (
                 <div className="animate-pulse">...</div>
               ) : (
                 formatNumber(prizePoolUSD)
               )}
             </div>
-            <div className="text-lg text-muted-foreground">Total Prize Pool</div>
+            <div className="text-lg text-muted-foreground">Current Prize Pool</div>
           </div>
           
           <div className="text-center p-8 bg-card rounded-xl border border-casino-red/20 hover:border-casino-red/40 transition-all duration-300 hover:shadow-casino">
             <Users className="h-16 w-16 text-casino-red mx-auto mb-4" />
             <div className="text-3xl font-bold text-casino-gold mb-2">
-              {ticketsLoading ? (
+              {roundLoading ? (
                 <div className="animate-pulse">...</div>
               ) : (
-                totalTickets ? Number(totalTickets).toLocaleString() : '0'
+                currentRound?.toString() || '1'
               )}
             </div>
-            <div className="text-lg text-muted-foreground">Tickets Sold</div>
+            <div className="text-lg text-muted-foreground">Current Round</div>
           </div>
           
           <div className="text-center p-8 bg-card rounded-xl border border-casino-red/20 hover:border-casino-red/40 transition-all duration-300 hover:shadow-casino">
