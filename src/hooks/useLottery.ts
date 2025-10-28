@@ -233,6 +233,11 @@ export function usePurchaseTicket() {
       
       // Call the contract write function with encrypted data
       console.log('Calling contract...');
+      console.log('Contract address:', LOTTERY_CONTRACT_ADDRESS);
+      console.log('Function name: purchaseTicketFHE');
+      console.log('Args:', [encryptedData.handles, encryptedData.proof]);
+      console.log('Value:', parseEther('0.005').toString());
+      
       const result = await writeContractAsync({
         args: [encryptedData.handles, encryptedData.proof],
       });
