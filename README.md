@@ -8,7 +8,7 @@
 
 ## 🎬 Demo Video
 
-https://github.com/nora89n/secret-spin-vault/assets/123456789/secret-spin-vault.mp4
+https://github.com/nora89n/secret-spin-vault/blob/main/secret-spin-vault.mp4
 
 *Watch the complete gameplay experience showcasing FHE encryption, ticket purchase, and prize claiming!*
 
