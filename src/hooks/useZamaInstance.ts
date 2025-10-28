@@ -1,69 +1,84 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { createInstance, initSDK, SepoliaConfig } from '@zama-fhe/relayer-sdk/bundle';
+import type { FhevmInstance } from '@zama-fhe/relayer-sdk/bundle';
 
 // Contract address - will be updated after deployment
 const CONTRACT_ADDRESS = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0xcD6D88F56275Db67a9cC5737CB0578EDa5E992BC';
 
-export interface FHEInstance {
-  createEncryptedInput: (contractAddress: string, userAddress: string) => {
-    add32: (value: number) => void;
-    encrypt: () => Promise<{
-      handles: Uint8Array[];
-      inputProof: Uint8Array;
-    }>;
-  };
-  userDecrypt: (handles: any[], privateKey: string, publicKey: string, signature: string, contractAddresses: string[], userAddress: string, startTimestamp: string | number, durationDays: string | number) => Promise<Record<string, number>>;
-}
-
 export const useZamaInstance = () => {
-  const [instance, setInstance] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [instance, setInstance] = useState<FhevmInstance | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  const initializeZama = async () => {
-    if (isLoading || isInitialized) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Check if ethereum provider is available
-      if (!(window as any).ethereum) {
-        throw new Error('Ethereum provider not found');
-      }
-
-      await initSDK();
-
-      const config = {
-        ...SepoliaConfig,
-        network: (window as any).ethereum
-      };
-
-      const zamaInstance = await createInstance(config);
-      setInstance(zamaInstance);
-      setIsInitialized(true);
-
-    } catch (err) {
-      console.error('Failed to initialize Zama instance:', err);
-      setError('Failed to initialize encryption service. Please ensure you have a wallet connected.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
-    initializeZama();
+    let mounted = true;
+
+    const initZama = async () => {
+      try {
+        console.log('🚀 Starting FHE initialization process...');
+        setIsLoading(true);
+        setError(null);
+
+        // Check if CDN script is loaded
+        if (typeof window !== 'undefined' && !(window as any).relayerSDK) {
+          console.warn('⚠️ FHE SDK CDN script not loaded, waiting...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          if (!(window as any).relayerSDK) {
+            throw new Error('FHE SDK CDN script not loaded. Please check network connection.');
+          }
+        }
+
+        console.log('🔄 Step 1: Initializing FHE SDK...');
+        console.log('📊 SDK available:', !!(window as any).relayerSDK);
+        console.log('📊 initSDK function:', typeof (window as any).relayerSDK?.initSDK);
+        
+        await initSDK();
+        console.log('✅ Step 1 completed: FHE SDK initialized successfully');
+
+        console.log('🔄 Step 2: Creating FHE instance with Sepolia config...');
+        console.log('📊 SepoliaConfig:', SepoliaConfig);
+        
+        const zamaInstance = await createInstance(SepoliaConfig);
+        console.log('✅ Step 2 completed: FHE instance created successfully');
+        console.log('📊 Instance methods:', Object.keys(zamaInstance || {}));
+
+        console.log('🔄 Step 3: Generating user keypair...');
+        await zamaInstance.generateKeypair();
+        console.log('✅ Step 3 completed: User keypair generated');
+
+        if (mounted) {
+          setInstance(zamaInstance);
+          console.log('🎉 FHE initialization completed successfully!');
+          console.log('📊 Instance ready for encryption/decryption operations');
+        }
+      } catch (err) {
+        console.error('❌ FHE initialization failed at step:', err);
+        console.error('📊 Error details:', {
+          name: err?.name,
+          message: err?.message,
+          stack: err?.stack
+        });
+        
+        if (mounted) {
+          setError(`Failed to initialize encryption service: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initZama();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  return {
-    instance,
-    isLoading,
-    error,
-    isInitialized,
-    retry: initializeZama
-  };
+  return { instance, isLoading, error };
 };
 
 export const useEthersSigner = () => {
@@ -118,10 +133,12 @@ export const useEncryptNumbers = () => {
   const [isEncrypting, setIsEncrypting] = useState(false);
 
   const encryptNumbers = useCallback(async (numbers: number[]) => {
-    console.log('useEncryptNumbers called with:', numbers);
-    console.log('Instance available:', !!instance);
-    console.log('Address available:', !!address);
-    console.log('Contract address:', CONTRACT_ADDRESS);
+    console.log('🚀 Starting FHE lottery numbers encryption process...');
+    console.log('📊 Input data:', {
+      numbers,
+      contractAddress: CONTRACT_ADDRESS,
+      userAddress: address
+    });
     
     if (!instance) {
       throw new Error('FHE instance not initialized. Please wait for initialization to complete.');
@@ -137,56 +154,59 @@ export const useEncryptNumbers = () => {
 
     setIsEncrypting(true);
     try {
-      console.log('Creating encrypted input...');
+      console.log('🔄 Step 1: Creating encrypted input...');
       const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
+      console.log('✅ Step 1 completed: Encrypted input created');
       
-      // Add each number as euint32
-      for (const number of numbers) {
-        console.log('Adding number:', number);
-        input.add32(number);
+      console.log('🔄 Step 2: Adding encrypted numbers...');
+      
+      // Validate all values are within 32-bit range
+      const max32Bit = 4294967295; // 2^32 - 1
+      
+      for (let i = 0; i < numbers.length; i++) {
+        const number = numbers[i];
+        console.log(`📊 Adding number ${i + 1}:`, number);
+        
+        if (number > max32Bit) {
+          throw new Error(`Number ${number} exceeds 32-bit limit`);
+        }
+        
+        input.add32(BigInt(number));
       }
       
-      console.log('Encrypting input...');
+      console.log('✅ Step 2 completed: All numbers added to encrypted input');
       
-      // Add timeout to handle FHE SDK ping issues
-      const encryptionPromise = input.encrypt();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Encryption timeout')), 30000)
-      );
+      console.log('🔄 Step 3: Encrypting input...');
+      const encryptedInput = await input.encrypt();
+      console.log('✅ Step 3 completed: Input encrypted successfully');
+      console.log('📊 Encryption result:', {
+        handlesCount: encryptedInput.handles.length,
+        proofLength: encryptedInput.inputProof.length
+      });
       
-      const encryptedInput = await Promise.race([encryptionPromise, timeoutPromise]) as any;
-      console.log('Encryption result:', encryptedInput);
-      
-      // Convert handles to hex strings
+      console.log('🔄 Step 4: Converting to hex format...');
       const handles = encryptedInput.handles.map(convertHex);
       const proof = convertProofToHex(encryptedInput.inputProof);
+      console.log('✅ Step 4 completed: Data converted to hex format');
       
-      console.log('Converted handles:', handles);
-      console.log('Converted proof:', proof);
+      console.log('🎉 FHE encryption completed successfully!');
+      console.log('📊 Final result:', {
+        handlesCount: handles.length,
+        proofLength: proof.length,
+        handles: handles.map(h => h.substring(0, 10) + '...')
+      });
       
       return {
         handles,
         proof
       };
     } catch (error) {
-      console.error('Encryption failed:', error);
-      // Check if it's a timeout error and retry once
-      if (error instanceof Error && error.message.includes('timeout')) {
-        console.log('Retrying encryption after timeout...');
-        try {
-          const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-          for (const number of numbers) {
-            input.add32(number);
-          }
-          const encryptedInput = await input.encrypt() as any;
-          const handles = encryptedInput.handles.map(convertHex);
-          const proof = convertProofToHex(encryptedInput.inputProof);
-          return { handles, proof };
-        } catch (retryError) {
-          console.error('Retry encryption failed:', retryError);
-          throw new Error(`Failed to encrypt numbers after retry: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`);
-        }
-      }
+      console.error('❌ FHE encryption failed:', error);
+      console.error('📊 Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
       throw new Error(`Failed to encrypt numbers: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsEncrypting(false);

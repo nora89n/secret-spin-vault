@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 
 export const FHEStatusDebug = () => {
-  const { instance, isLoading, error, isInitialized, retry } = useZamaInstance();
+  const { instance, isLoading, error } = useZamaInstance();
   const { address, isConnected } = useAccount();
 
   const contractAddress = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0xcD6D88F56275Db67a9cC5737CB0578EDa5E992BC';
@@ -39,13 +39,13 @@ export const FHEStatusDebug = () => {
         <div className="flex items-center gap-2">
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
-          ) : isInitialized && instance ? (
+          ) : instance ? (
             <CheckCircle className="h-4 w-4 text-green-500" />
           ) : (
             <AlertCircle className="h-4 w-4 text-red-500" />
           )}
           <span className="text-sm">
-            FHE Instance: {isLoading ? 'Loading...' : isInitialized ? 'Ready' : 'Failed'}
+            FHE Instance: {isLoading ? 'Loading...' : instance ? 'Ready' : 'Failed'}
           </span>
         </div>
 
@@ -71,18 +71,18 @@ export const FHEStatusDebug = () => {
         {/* Retry Button */}
         {error && (
           <Button
-            onClick={retry}
+            onClick={() => window.location.reload()}
             variant="outline"
             size="sm"
             className="w-full border-casino-gold text-casino-gold hover:bg-casino-gold hover:text-casino-black"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Retry FHE Initialization
+            Refresh Page
           </Button>
         )}
 
         {/* Test Encryption Button */}
-        {isInitialized && instance && isConnected && (
+        {instance && isConnected && (
           <Button
             onClick={async () => {
               try {

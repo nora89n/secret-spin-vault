@@ -15,7 +15,7 @@ export const TicketSection = () => {
   const { playerTickets, isLoading: ticketsLoading } = useGetPlayerTickets(address || '0x0');
   const { ticketPrice, isLoading: priceLoading } = useGetTicketPrice();
   const { purchaseTicket, isLoading: purchaseLoading, isConfirmed, error: purchaseError, hash } = usePurchaseTicket();
-  const { instance, isLoading: fheLoading, error: fheError, isInitialized } = useZamaInstance();
+  const { instance, isLoading: fheLoading, error: fheError } = useZamaInstance();
   
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -41,7 +41,7 @@ export const TicketSection = () => {
       return;
     }
     
-    if (!isInitialized || !instance) {
+    if (!instance) {
       toast.error('FHE encryption service not available. Please refresh the page.');
       return;
     }
