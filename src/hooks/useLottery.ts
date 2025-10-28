@@ -41,6 +41,13 @@ const LOTTERY_ABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "triggerNextDraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -192,6 +199,50 @@ const LOTTERY_ABI = [
 ] as const;
 
 // Removed useLotteryContract as useContract is not available in wagmi v2
+
+export function useTriggerNextDraw() {
+  const { 
+    writeContractAsync, 
+    data: hash, 
+    isLoading: isWriteLoading, 
+    error: writeError 
+  } = useContractWrite();
+
+  const { 
+    isLoading: isConfirming, 
+    isSuccess: isConfirmed, 
+    error: confirmError 
+  } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const triggerNextDraw = async () => {
+    try {
+      console.log('Triggering next draw...');
+      
+      const result = await writeContractAsync({
+        address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
+        abi: LOTTERY_ABI,
+        functionName: 'triggerNextDraw',
+        args: [],
+      });
+      
+      console.log('Draw trigger successful:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to trigger next draw:', error);
+      throw error;
+    }
+  };
+
+  return {
+    triggerNextDraw,
+    isLoading: isWriteLoading || isConfirming,
+    isConfirmed,
+    error: writeError || confirmError,
+    hash,
+  };
+}
 
 export function usePurchaseTicket() {
   const { encryptNumbers, isEncrypting } = useEncryptNumbers();

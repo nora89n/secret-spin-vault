@@ -2,11 +2,14 @@ import { useZamaInstance } from '@/hooks/useZamaInstance';
 import { useAccount } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, RefreshCw, Shield } from "lucide-react";
+import { toast } from 'sonner';
+import { useTriggerNextDraw } from '@/hooks/useLottery';
 
 export const FHEStatusDebug = () => {
   const { instance, isLoading, error } = useZamaInstance();
   const { address, isConnected } = useAccount();
+  const { triggerNextDraw, isLoading: isTriggering } = useTriggerNextDraw();
 
   const contractAddress = import.meta.env.VITE_LOTTERY_CONTRACT_ADDRESS || '0x22DC5027b6dA0C2e50c8f04655113C0C497948ED';
 
@@ -107,6 +110,27 @@ export const FHEStatusDebug = () => {
             className="w-full"
           >
             Test Encryption
+          </Button>
+        )}
+
+        {/* Trigger Next Draw Button */}
+        {isConnected && (
+          <Button
+            onClick={async () => {
+              try {
+                await triggerNextDraw();
+                toast.success('Next draw triggered successfully!');
+              } catch (e) {
+                console.error('Trigger draw failed:', e);
+                toast.error(`Failed to trigger draw: ${e instanceof Error ? e.message : 'Unknown error'}`);
+              }
+            }}
+            variant="secondary"
+            size="sm"
+            className="mt-2 w-full bg-casino-gold text-casino-black hover:bg-casino-gold/90"
+            disabled={isTriggering}
+          >
+            {isTriggering ? 'Triggering...' : 'Trigger Next Draw'}
           </Button>
         )}
       </CardContent>
