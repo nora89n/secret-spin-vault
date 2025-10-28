@@ -6,6 +6,159 @@
 [![🔐 FHE](https://img.shields.io/badge/🔐_Powered_by-FHE-00D4AA?style=for-the-badge)](https://docs.zama.ai/fhevm)
 [![⚡ Vite](https://img.shields.io/badge/⚡_Built_with-Vite-646CFF?style=for-the-badge&logo=vite)](https://vitejs.dev/)
 
+## 🎬 Demo Video
+
+https://github.com/nora89n/secret-spin-vault/assets/123456789/secret-spin-vault.mp4
+
+*Watch the complete gameplay experience showcasing FHE encryption, ticket purchase, and prize claiming!*
+
+---
+
+## 📋 Contract Information
+
+### 🎯 Deployed Contract Details
+
+| Property | Value |
+|----------|-------|
+| **Contract Address** | `0x947085bd4eac8CfBE396F8280A34b1dc415043A9` |
+| **Network** | Sepolia Testnet |
+| **Contract Name** | `SecretSpinVaultSimple` |
+| **Ticket Price** | 0.005 ETH |
+| **Number Range** | 1-49 (Single Number) |
+| **Draw Frequency** | Manual (Owner Controlled) |
+
+### 🔗 Contract Links
+
+- **Etherscan**: [View Contract](https://sepolia.etherscan.io/address/0x947085bd4eac8CfBE396F8280A34b1dc415043A9)
+- **Source Code**: [contracts/SecretSpinVaultSimple.sol](./contracts/SecretSpinVaultSimple.sol)
+
+---
+
+## 🔐 FHE Encryption & Decryption Logic
+
+### 🎲 Core Encryption Process
+
+Our lottery system uses **Zama's Fully Homomorphic Encryption** to ensure complete privacy of lottery numbers:
+
+#### 1. **Frontend Encryption** (`useZamaInstance.ts`)
+
+```typescript
+// Single number encryption for simplified lottery
+const encryptNumber = async (number: number): Promise<{ handle: string; proof: string }> => {
+  const input = instance.createEncryptedInput();
+  input.add8(number); // Encrypt 8-bit number (1-49)
+  
+  const { handle, inputProof } = await input.encrypt();
+  return { handle, proof: inputProof };
+};
+```
+
+#### 2. **Smart Contract Storage** (`SecretSpinVaultSimple.sol`)
+
+```solidity
+// Store encrypted lottery numbers
+mapping(uint256 => mapping(address => euint8[])) public userTickets;
+mapping(uint256 => mapping(address => uint256)) public userTicketCounts;
+
+function buyTicket(externalEuint8 encryptedNumber) external payable {
+    require(msg.value == TICKET_PRICE, "Incorrect ticket price");
+    
+    // Convert external encrypted handle to internal FHE type
+    euint8 encryptedNum = FHE.fromExternal(encryptedNumber);
+    
+    // Store encrypted ticket
+    userTickets[currentRound][msg.sender].push(encryptedNum);
+    userTicketCounts[currentRound][msg.sender]++;
+    
+    // Update prize pool
+    prizePools[currentRound] += msg.value;
+    totalTicketsInRound[currentRound]++;
+}
+```
+
+#### 3. **Decryption Process** (`useDecryptTicket.ts`)
+
+```typescript
+// Individual ticket decryption with EIP712 signature
+const decryptTicket = async (round: number, ticketIndex: number): Promise<number | null> => {
+  // 1. Get encrypted handle from contract
+  const encryptedHandle = await contract.getUserTicket(address, round, ticketIndex);
+  
+  // 2. Generate keypair for decryption
+  const keypair = instance.generateKeypair();
+  
+  // 3. Create EIP712 signature for decryption permission
+  const eip712 = instance.createEIP712(
+    keypair.publicKey, 
+    [contractAddress], 
+    startTimeStamp, 
+    durationDays
+  );
+  
+  // 4. Sign with wallet for decryption authorization
+  const signature = await signer.signTypedData(
+    eip712.domain, 
+    { UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification }, 
+    eip712.message
+  );
+  
+  // 5. Decrypt the ticket number
+  const result = await instance.userDecrypt(
+    [{ handle: encryptedHandle, contractAddress }],
+    keypair.privateKey,
+    keypair.publicKey,
+    signature.replace('0x', ''),
+    [contractAddress],
+    userAddress,
+    startTimeStamp,
+    durationDays
+  );
+  
+  return Number(result[encryptedHandle]);
+};
+```
+
+### 🛡️ Security Features
+
+#### **ACL (Access Control List) Permissions**
+
+```solidity
+// Grant decryption permissions in contract
+function buyTicket(externalEuint8 encryptedNumber) external payable {
+    euint8 encryptedNum = FHE.fromExternal(encryptedNumber);
+    
+    // Allow contract to access encrypted data
+    FHE.allowThis(encryptedNum);
+    
+    // Allow ticket owner to decrypt their own numbers
+    FHE.allow(encryptedNum, msg.sender);
+    
+    // Store encrypted ticket
+    userTickets[currentRound][msg.sender].push(encryptedNum);
+}
+```
+
+#### **Privacy Guarantees**
+
+- ✅ **Numbers encrypted on-chain**: All lottery numbers stored as `euint8` (encrypted)
+- ✅ **Zero-knowledge verification**: Winners verified without revealing numbers
+- ✅ **Individual decryption**: Each ticket decrypted separately with wallet signature
+- ✅ **EIP712 signatures**: Cryptographic proof of decryption authorization
+- ✅ **ACL permissions**: Granular access control for encrypted data
+
+### 🎯 Winner Verification
+
+```solidity
+// Public winner verification (no decryption needed)
+function checkTicket(address user, uint256 round, uint256 ticketIndex) external view returns (ebool) {
+    euint8 userNumber = userTickets[round][user][ticketIndex];
+    uint8 winningNumber = winningNumbers[round];
+    
+    // Compare encrypted number with public winning number
+    return FHE.eq(userNumber, FHE.asEuint8(winningNumber));
+}
+```
+
 ---
 
 ## 🎯 Welcome to the Future of Gaming
@@ -46,23 +199,24 @@ graph LR
 
 ### 🎰 Game Features
 
-#### 🎯 **Smart Number Selection**
-- Choose from multiple number ranges
-- Quick pick or manual selection
-- Lucky number suggestions
-- Historical pattern analysis
+#### 🎯 **Simplified Number Selection**
+- Single number lottery (1-49)
+- Manual number input
+- Real-time validation
+- Instant ticket purchase
 
 #### 🔐 **Privacy-First Design**
-- Numbers encrypted with FHE technology
-- Zero-knowledge verification
-- Complete anonymity until draw
+- Numbers encrypted with FHE technology (`euint8`)
+- Individual ticket decryption with EIP712 signatures
+- Complete anonymity until decryption
 - Cryptographic proof of fairness
 
-#### 💎 **Premium Gaming Experience**
+#### 💎 **Modern Gaming Experience**
 - Beautiful, responsive interface
-- Real-time animations and effects
-- Sound effects and haptic feedback
+- Real-time data from smart contract
+- Individual decrypt buttons per ticket
 - Mobile-optimized gameplay
+- Round-based lottery system
 
 ---
 
@@ -103,17 +257,16 @@ Configure your gaming environment in `.env.local`:
 ```env
 # Gaming Network Configuration
 VITE_CHAIN_ID=11155111
-VITE_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+VITE_RPC_URL=https://1rpc.io/sepolia
 
 # Wallet Gaming Integration
-VITE_WALLET_CONNECT_PROJECT_ID=YOUR_PROJECT_ID
+VITE_WALLET_CONNECT_PROJECT_ID=e08e99d213c331aa0fd00f625de06e66
 
-# Lottery Contract Address
-VITE_LOTTERY_CONTRACT_ADDRESS=YOUR_CONTRACT_ADDRESS
+# Lottery Contract Address (Latest Deployed)
+VITE_LOTTERY_CONTRACT_ADDRESS=0x947085bd4eac8CfBE396F8280A34b1dc415043A9
 
-# Gaming Features
-VITE_ENABLE_SOUND=true
-VITE_ENABLE_ANIMATIONS=true
+# API Keys
+ETHERSCAN_API_KEY=J8PU7AX1JX3RGEH1SNGZS4628BAH192Y3N
 ```
 
 ---
@@ -173,12 +326,13 @@ secret-spin-vault/
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **🎯 Number Selection** | Choose your lucky numbers | ✅ Complete |
-| **🔐 FHE Encryption** | Private number storage | ✅ Complete |
-| **🎰 Ticket Purchase** | Buy encrypted lottery tickets | ✅ Complete |
-| **⏰ Draw System** | Fair random number generation | ✅ Complete |
+| **🎯 Single Number Selection** | Choose number 1-49 | ✅ Complete |
+| **🔐 FHE Encryption** | Private number storage (`euint8`) | ✅ Complete |
+| **🎰 Ticket Purchase** | Buy encrypted lottery tickets (0.005 ETH) | ✅ Complete |
+| **⏰ Round System** | Round-based lottery management | ✅ Complete |
 | **🏆 Prize Distribution** | Automatic winner payouts | ✅ Complete |
-| **📊 Game Analytics** | Player statistics and insights | 🚧 In Progress |
+| **🔓 Individual Decryption** | Decrypt tickets with EIP712 signatures | ✅ Complete |
+| **📊 Real-time Data** | Live contract data display | ✅ Complete |
 
 ### 🎪 Advanced Features
 
