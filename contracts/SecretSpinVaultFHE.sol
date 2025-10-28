@@ -92,6 +92,12 @@ contract SecretSpinVaultFHE {
             isWinner: false
         });
         
+        // Set ACL permissions (reference aidwell-connect)
+        for (uint256 i = 0; i < MAX_NUMBERS; i++) {
+            FHE.allowThis(tickets[ticketId].numbers[i]);
+            FHE.allow(tickets[ticketId].numbers[i], msg.sender);
+        }
+        
         playerTickets[msg.sender].push(ticketId);
         
         emit TicketPurchased(ticketId, msg.sender, encryptedNumbers);
