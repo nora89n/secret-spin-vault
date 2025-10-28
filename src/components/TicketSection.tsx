@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Lock, Eye, EyeOff, Plus } from "lucide-react";
 import { useAccount } from 'wagmi';
-import { useGetPlayerTickets, useGetTicketInfo, usePurchaseTicket, useGetTicketPrice } from '@/hooks/useLottery';
+import { useGetPlayerTickets, useGetTicketInfo, usePurchaseTicket, useGetTicketPrice, useNeedsDrawTrigger, useTriggerNextDraw } from '@/hooks/useLottery';
 import { useDecryptNumbers, useZamaInstance } from '@/hooks/useZamaInstance';
 import { NumberSelector } from './NumberSelector';
 import { PurchaseConfirmation } from './PurchaseConfirmation';
@@ -16,6 +16,8 @@ export const TicketSection = () => {
   const { ticketPrice, isLoading: priceLoading } = useGetTicketPrice();
   const { purchaseTicket, isLoading: purchaseLoading, isConfirmed, error: purchaseError, hash } = usePurchaseTicket();
   const { instance, isLoading: fheLoading, error: fheError } = useZamaInstance();
+  const { needsDrawTrigger, timeUntilNextDraw, isLoading: drawStatusLoading } = useNeedsDrawTrigger();
+  const { triggerNextDraw, isLoading: triggerLoading } = useTriggerNextDraw();
   
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -46,7 +48,23 @@ export const TicketSection = () => {
       return;
     }
     
+    // Check if we need to trigger a draw first
+    if (needsDrawTrigger) {
+      toast.error('No active draw available. Please trigger next draw first.');
+      return;
+    }
+    
     setShowBuyModal(true);
+  };
+
+  const handleTriggerDraw = async () => {
+    try {
+      await triggerNextDraw();
+      toast.success('Next draw triggered successfully! You can now purchase tickets.');
+    } catch (error) {
+      console.error('Failed to trigger draw:', error);
+      toast.error('Failed to trigger draw. Please try again.');
+    }
   };
 
   const handlePurchaseConfirm = async () => {
@@ -104,31 +122,84 @@ export const TicketSection = () => {
           <Card className="bg-gradient-luxury border-casino-gold/20 hover:border-casino-gold/40 transition-all duration-300 hover:shadow-gold border-dashed">
             <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[200px]">
               <div className="text-6xl text-casino-gold/30 mb-4">+</div>
-              <Button 
-                variant="casino" 
-                className="w-full"
-                onClick={handlePurchaseClick}
-                disabled={!address || purchaseLoading || fheLoading}
-              >
-                {fheLoading ? (
-                  'Loading FHE...'
-                ) : purchaseLoading ? (
-                  'Purchasing...'
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Buy New Ticket
-                  </>
-                )}
-              </Button>
+              
+              {needsDrawTrigger ? (
+                <Button 
+                  variant="casino" 
+                  className="w-full"
+                  onClick={handleTriggerDraw}
+                  disabled={!address || triggerLoading || fheLoading}
+                >
+                  {triggerLoading ? (
+                    'Triggering Draw...'
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Trigger Next Draw
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button 
+                  variant="casino" 
+                  className="w-full"
+                  onClick={handlePurchaseClick}
+                  disabled={!address || purchaseLoading || fheLoading || drawStatusLoading}
+                >
+                  {fheLoading ? (
+                    'Loading FHE...'
+                  ) : purchaseLoading ? (
+                    'Purchasing...'
+                  ) : drawStatusLoading ? (
+                    'Checking Draw Status...'
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Buy New Ticket
+                    </>
+                  )}
+                </Button>
+              )}
+              
               <p className="text-sm text-muted-foreground mt-2 text-center">
-                {formatTicketPrice(ticketPrice)} per ticket
+                {needsDrawTrigger ? (
+                  'No active draw - trigger first'
+                ) : (
+                  `${formatTicketPrice(ticketPrice)} per ticket`
+                )}
               </p>
             </CardContent>
           </Card>
         </div>
         
         <div className="text-center">
+          {/* Draw Status Display */}
+          <div className="bg-card rounded-xl p-6 border border-casino-gold/20 max-w-2xl mx-auto mb-8">
+            <h3 className="text-xl font-bold text-casino-gold mb-4">Current Draw Status</h3>
+            {drawStatusLoading ? (
+              <p className="text-muted-foreground">Loading draw status...</p>
+            ) : needsDrawTrigger ? (
+              <div className="text-center">
+                <p className="text-casino-red font-semibold mb-2">⚠️ No Active Draw</p>
+                <p className="text-sm text-muted-foreground">
+                  The current draw period has ended. Please trigger the next draw to start purchasing tickets.
+                </p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-green-500 font-semibold mb-2">✅ Active Draw Available</p>
+                <p className="text-sm text-muted-foreground">
+                  You can purchase tickets for the current draw.
+                </p>
+                {timeUntilNextDraw && timeUntilNextDraw > 0n && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Next draw in: {Math.floor(Number(timeUntilNextDraw) / 86400)} days
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          
           <div className="bg-card rounded-xl p-8 border border-casino-gold/20 max-w-2xl mx-auto mb-8">
             <h3 className="text-2xl font-bold text-casino-gold mb-4">How It Works</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">

@@ -200,6 +200,21 @@ const LOTTERY_ABI = [
 
 // Removed useLotteryContract as useContract is not available in wagmi v2
 
+export function useNeedsDrawTrigger() {
+  const { data: timeUntilNextDraw, isLoading, error } = useContractRead({
+    address: LOTTERY_CONTRACT_ADDRESS as `0x${string}`,
+    abi: LOTTERY_ABI,
+    functionName: 'getTimeUntilNextDraw',
+  });
+
+  return {
+    needsDrawTrigger: timeUntilNextDraw === 0n,
+    timeUntilNextDraw,
+    isLoading,
+    error,
+  };
+}
+
 export function useTriggerNextDraw() {
   const { 
     writeContractAsync, 
